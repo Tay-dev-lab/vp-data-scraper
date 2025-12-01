@@ -9,7 +9,6 @@ Flow:
 5. Documents tab → Find and yield PDF documents
 """
 
-import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse, urljoin
@@ -59,7 +58,6 @@ class IdoxSpider(scrapy.Spider):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger(__name__)
 
         # Calculate date range
         if start_date and end_date:
@@ -70,10 +68,6 @@ class IdoxSpider(scrapy.Spider):
             start = end - timedelta(days=int(days_back))
             self.start_date = start.strftime("%d/%m/%Y")
             self.end_date = end.strftime("%d/%m/%Y")
-
-        self.logger.info(
-            f"IDOX spider initialized: {self.start_date} to {self.end_date}"
-        )
 
         # Build allowed domains from URLs
         self.allowed_domains = list(
@@ -86,6 +80,30 @@ class IdoxSpider(scrapy.Spider):
             "applications_found": 0,
             "documents_found": 0,
         }
+
+        # Log startup configuration
+        self._log_startup_config()
+
+    def _log_startup_config(self):
+        """Log clear startup configuration."""
+        self.logger.info("")
+        self.logger.info("=" * 60)
+        self.logger.info("IDOX SPIDER CONFIGURATION")
+        self.logger.info("=" * 60)
+        self.logger.info(f"  Date Range: {self.start_date} to {self.end_date}")
+        self.logger.info(f"  Target Councils: {len(IDOX_URLS)}")
+        self.logger.info(f"  Concurrent Requests: {self.custom_settings.get('CONCURRENT_REQUESTS', 8)}")
+        self.logger.info(f"  Download Delay: {self.custom_settings.get('DOWNLOAD_DELAY', 1.0)}s")
+        self.logger.info(f"  Autothrottle: ENABLED")
+        self.logger.info("=" * 60)
+        self.logger.info("")
+        self.logger.info("Target councils:")
+        for i, url in enumerate(IDOX_URLS[:5], 1):
+            council = self._extract_council_name(url)
+            self.logger.info(f"  {i}. {council}")
+        if len(IDOX_URLS) > 5:
+            self.logger.info(f"  ... and {len(IDOX_URLS) - 5} more")
+        self.logger.info("")
 
     def start_requests(self):
         """Generate initial requests for each IDOX portal."""
@@ -261,8 +279,14 @@ class IdoxSpider(scrapy.Spider):
                 if field_name in field_mapping:
                     app_data[field_mapping[field_name]] = field_value
 
-        # Follow Further Information tab
-        further_info_url = response.xpath("//a[@id='subtab_details']/@href").get()
+        # Follow Further Information tab - try multiple selectors
+        further_info_url = (
+            response.xpath("//a[@id='subtab_details']/@href").get()
+            or response.xpath("//a[contains(@href, 'activeTab=details')]/@href").get()
+            or response.xpath("//a[contains(text(), 'Further Information')]/@href").get()
+            or response.xpath("//li[@id='tab_details']//a/@href").get()
+        )
+
         if further_info_url:
             yield scrapy.Request(
                 url=response.urljoin(further_info_url),
@@ -276,7 +300,12 @@ class IdoxSpider(scrapy.Spider):
             )
         else:
             # Try to go directly to documents tab
-            docs_url = response.xpath("//a[@id='subtab_documents']/@href").get()
+            docs_url = (
+                response.xpath("//a[@id='subtab_documents']/@href").get()
+                or response.xpath("//a[contains(@href, 'activeTab=documents')]/@href").get()
+                or response.xpath("//a[contains(text(), 'Documents')]/@href").get()
+                or response.xpath("//li[@id='tab_documents']//a/@href").get()
+            )
             if docs_url:
                 yield scrapy.Request(
                     url=response.urljoin(docs_url),
@@ -288,6 +317,9 @@ class IdoxSpider(scrapy.Spider):
                     meta={"council_name": council_name},
                 )
             else:
+                self.logger.warning(
+                    f"No further info or documents tab for {app_data.get('application_reference')}"
+                )
                 # Yield application without documents
                 yield self._create_application_item(app_data)
 
@@ -318,9 +350,16 @@ class IdoxSpider(scrapy.Spider):
                 if field_name in field_mapping:
                     app_data[field_mapping[field_name]] = field_value
 
-        # Now go to Documents tab
-        docs_url = response.xpath("//a[@id='subtab_documents']/@href").get()
+        # Now go to Documents tab - try multiple selectors
+        docs_url = (
+            response.xpath("//a[@id='subtab_documents']/@href").get()
+            or response.xpath("//a[contains(@href, 'activeTab=documents')]/@href").get()
+            or response.xpath("//a[contains(text(), 'Documents')]/@href").get()
+            or response.xpath("//li[@id='tab_documents']//a/@href").get()
+        )
+
         if docs_url:
+            self.logger.debug(f"Found documents tab: {docs_url}")
             yield scrapy.Request(
                 url=response.urljoin(docs_url),
                 callback=self.parse_documents_tab,
@@ -331,7 +370,12 @@ class IdoxSpider(scrapy.Spider):
                 meta={"council_name": council_name},
             )
         else:
-            # No documents tab found, yield application
+            # Log that we couldn't find documents tab
+            self.logger.warning(
+                f"No documents tab found for {app_data.get('application_reference')} - "
+                f"URL: {response.url}"
+            )
+            # Yield application without documents
             yield self._create_application_item(app_data)
 
     def parse_documents_tab(
@@ -347,14 +391,17 @@ class IdoxSpider(scrapy.Spider):
         # First yield the application item
         yield self._create_application_item(app_data)
 
-        # Common selectors for IDOX document tables
-        # Try different table structures
-        doc_rows = response.xpath(
-            "//table[contains(@class, 'display')]//tbody//tr"
-        ) or response.xpath(
-            "//table[@id='documents']//tr[position()>1]"
-        ) or response.xpath(
-            "//div[@id='Documents']//table//tr[position()>1]"
+        app_ref = app_data.get("application_reference", "unknown")
+        self.logger.debug(f"Parsing documents tab for {app_ref}: {response.url}")
+
+        # Try multiple table structures used by different IDOX versions
+        doc_rows = (
+            response.xpath("//table[contains(@class, 'display')]//tbody//tr")
+            or response.xpath("//table[@id='documents']//tbody//tr")
+            or response.xpath("//table[@id='documents']//tr[position()>1]")
+            or response.xpath("//div[@id='Documents']//table//tr[position()>1]")
+            or response.xpath("//table[contains(@class, 'documents')]//tr[position()>1]")
+            or response.xpath("//div[@class='tabcontainer']//table//tr[td]")
         )
 
         if not doc_rows:
@@ -362,6 +409,8 @@ class IdoxSpider(scrapy.Spider):
             doc_rows = response.xpath(
                 "//div[@class='documentGroup']//div[contains(@class, 'document')]"
             )
+
+        self.logger.debug(f"Found {len(doc_rows)} document rows for {app_ref}")
 
         documents_found = 0
 
@@ -372,32 +421,47 @@ class IdoxSpider(scrapy.Spider):
                 self.stats["documents_found"] += 1
                 yield doc_item
 
-        # Check for alternate document formats - links directly
+        # Check for alternate document formats - direct PDF links anywhere on page
         if documents_found == 0:
+            # Look for any PDF-like links
             pdf_links = response.xpath(
-                "//a[contains(@href, '.pdf') or contains(@href, 'ViewDocument')]/@href"
+                "//a[contains(@href, '.pdf')]/@href"
             ).getall()
 
-            for pdf_url in pdf_links:
-                # Extract filename from URL or link text
-                link_text = response.xpath(
-                    f"//a[contains(@href, '{pdf_url}')]/text()"
-                ).get("")
+            # Also look for ViewDocument links (common IDOX pattern)
+            view_doc_links = response.xpath(
+                "//a[contains(@href, 'ViewDocument') or contains(@href, 'viewDocument')]/@href"
+            ).getall()
+
+            all_doc_links = list(set(pdf_links + view_doc_links))
+
+            self.logger.debug(f"Fallback: found {len(all_doc_links)} direct doc links for {app_ref}")
+
+            for pdf_url in all_doc_links:
+                # Get the link text for filename
+                link_elem = response.xpath(f"//a[@href='{pdf_url}']")
+                if not link_elem:
+                    link_elem = response.xpath(f"//a[contains(@href, '{pdf_url}')]")
+
+                link_text = ""
+                if link_elem:
+                    link_text = link_elem.xpath("string(.)").get("").strip()
 
                 doc_item = DocumentItem(
                     application_reference=app_data.get("application_reference"),
                     council_name=app_data.get("council_name"),
                     document_url=response.urljoin(pdf_url),
-                    filename=link_text.strip() or self._extract_filename_from_url(pdf_url),
+                    filename=link_text or self._extract_filename_from_url(pdf_url),
                     source_url=response.url,
                 )
                 documents_found += 1
                 self.stats["documents_found"] += 1
                 yield doc_item
 
-        self.logger.debug(
-            f"Found {documents_found} documents for {app_data.get('application_reference')}"
-        )
+        if documents_found > 0:
+            self.logger.info(f"Found {documents_found} documents for {app_ref}")
+        else:
+            self.logger.debug(f"No documents found for {app_ref} at {response.url}")
 
     def _extract_document_from_row(
         self, row, app_data: Dict[str, Any], response

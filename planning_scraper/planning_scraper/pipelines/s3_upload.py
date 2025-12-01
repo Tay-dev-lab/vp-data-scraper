@@ -66,10 +66,14 @@ class S3UploadPipeline:
 
     def open_spider(self, spider):
         """Initialize S3 client when spider opens."""
+        spider.logger.info("=" * 60)
+        spider.logger.info("S3 CONFIGURATION")
+        spider.logger.info("=" * 60)
+
         if not self.bucket_name:
-            self.logger.warning(
-                "S3_BUCKET_NAME not configured - S3 uploads disabled"
-            )
+            spider.logger.warning("  Status: DISABLED")
+            spider.logger.warning("  Reason: S3_BUCKET_NAME not configured")
+            spider.logger.info("=" * 60)
             return
 
         try:
@@ -81,9 +85,17 @@ class S3UploadPipeline:
             )
             # Test connection
             self.s3_client.head_bucket(Bucket=self.bucket_name)
-            self.logger.info(f"S3 client connected to bucket: {self.bucket_name}")
+
+            spider.logger.info("  Status: CONNECTED")
+            spider.logger.info(f"  Bucket: {self.bucket_name}")
+            spider.logger.info(f"  Region: {self.region}")
+            spider.logger.info(f"  Key Pattern: documents/{{council}}/{{app_ref}}/{{doc_type}}/{{id}}_{{filename}}.pdf")
+            spider.logger.info("=" * 60)
         except ClientError as e:
-            self.logger.error(f"Failed to connect to S3 bucket: {e}")
+            spider.logger.error("  Status: FAILED")
+            spider.logger.error(f"  Bucket: {self.bucket_name}")
+            spider.logger.error(f"  Error: {e}")
+            spider.logger.info("=" * 60)
             self.s3_client = None
 
     def process_item(self, item, spider):

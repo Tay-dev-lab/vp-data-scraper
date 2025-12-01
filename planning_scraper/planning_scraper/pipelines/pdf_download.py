@@ -3,6 +3,8 @@ PDF Download Pipeline - downloads matching PDF documents.
 
 This pipeline runs after DocumentFilterPipeline (priority 200).
 Downloads PDFs to temporary storage for compression and S3 upload.
+
+Uses Scrapy's downloader to maintain session cookies.
 """
 
 import logging
@@ -10,9 +12,12 @@ import tempfile
 import os
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
-import scrapy
+from scrapy import Request
+from scrapy.http import Response
 from scrapy.exceptions import DropItem
+from twisted.internet import defer
 
 from ..items.document import DocumentItem
 from ..utils.text_cleaner import clean_filename
@@ -22,29 +27,24 @@ class PDFDownloadPipeline:
     """
     Pipeline that downloads PDF documents to temporary storage.
 
-    Features:
-    - Streaming download for large files
-    - Content-type validation
-    - Retry on failure
-    - Temporary file management
+    Uses Scrapy's downloader to maintain cookies and session state.
     """
 
     # Maximum file size to download (100MB)
     MAX_FILE_SIZE = 100 * 1024 * 1024
 
-    # Chunk size for streaming (8KB)
-    CHUNK_SIZE = 8192
-
     # Valid content types for PDFs
     VALID_CONTENT_TYPES = [
         "application/pdf",
         "application/x-pdf",
-        "application/octet-stream",  # Some servers use this for PDFs
+        "application/octet-stream",
+        "binary/octet-stream",
     ]
 
     def __init__(self, temp_dir: Optional[str] = None):
         self.temp_dir = temp_dir
         self.logger = logging.getLogger(__name__)
+        self.crawler = None
         self.stats = {
             "total_downloads": 0,
             "successful": 0,
@@ -56,7 +56,9 @@ class PDFDownloadPipeline:
     def from_crawler(cls, crawler):
         """Create pipeline instance from crawler."""
         temp_dir = crawler.settings.get("PDF_TEMP_DIR")
-        return cls(temp_dir=temp_dir)
+        pipeline = cls(temp_dir=temp_dir)
+        pipeline.crawler = crawler
+        return pipeline
 
     def open_spider(self, spider):
         """Create temp directory when spider opens."""
@@ -66,9 +68,10 @@ class PDFDownloadPipeline:
             self.temp_dir = tempfile.mkdtemp(prefix="planning_pdfs_")
         self.logger.info(f"PDF temp directory: {self.temp_dir}")
 
+    @defer.inlineCallbacks
     def process_item(self, item, spider):
         """
-        Download a PDF document.
+        Download a PDF document using Scrapy's downloader.
 
         Only processes DocumentItems that passed the filter.
         """
@@ -90,98 +93,88 @@ class PDFDownloadPipeline:
             return item
 
         try:
-            local_path = self._download_pdf(document_url, item, spider)
+            # Create request with proper headers
+            request = Request(
+                url=document_url,
+                callback=lambda r: r,  # Dummy callback
+                dont_filter=True,
+                meta={
+                    "download_timeout": 300,
+                    "handle_httpstatus_list": [200, 404, 403, 500],
+                },
+                headers={
+                    "Accept": "application/pdf,*/*",
+                    "Referer": item.get("source_url", ""),
+                },
+            )
 
-            if local_path:
-                item["local_path"] = local_path
-                item["download_status"] = "success"
-                item["file_size"] = os.path.getsize(local_path)
-                self.stats["successful"] += 1
-                self.stats["total_bytes"] += item["file_size"]
+            # Use Scrapy's downloader
+            response = yield self.crawler.engine.download(request)
 
-                self.logger.debug(
-                    f"Downloaded: {item.get('filename')} "
-                    f"({item['file_size']} bytes)"
-                )
+            if response.status == 200:
+                local_path = self._save_response(response, item)
+
+                if local_path:
+                    item["local_path"] = local_path
+                    item["download_status"] = "success"
+                    item["file_size"] = os.path.getsize(local_path)
+                    self.stats["successful"] += 1
+                    self.stats["total_bytes"] += item["file_size"]
+
+                    self.logger.info(
+                        f"Downloaded: {item.get('filename')} "
+                        f"({item['file_size'] / 1024:.1f} KB)"
+                    )
+                else:
+                    item["download_status"] = "failed"
+                    item["download_error"] = "Failed to save file"
+                    self.stats["failed"] += 1
             else:
                 item["download_status"] = "failed"
-                item["download_error"] = "Download returned no data"
+                item["download_error"] = f"HTTP {response.status}"
                 self.stats["failed"] += 1
+                self.logger.warning(
+                    f"Download failed: HTTP {response.status} for {item.get('filename')}"
+                )
 
         except Exception as e:
             item["download_status"] = "failed"
             item["download_error"] = str(e)
             self.stats["failed"] += 1
-            self.logger.error(f"Download failed for {document_url}: {e}")
+            error_type = type(e).__name__
+            self.logger.error(
+                f"Download failed [{error_type}] for {item.get('filename', 'unknown')}: {e}"
+            )
 
         return item
 
-    def _download_pdf(
-        self, url: str, item: DocumentItem, spider
-    ) -> Optional[str]:
+    def _save_response(self, response: Response, item: DocumentItem) -> Optional[str]:
         """
-        Download a PDF file to temporary storage.
+        Save response body to a temporary file.
 
         Args:
-            url: Document URL
+            response: Scrapy response object
             item: DocumentItem with metadata
-            spider: Spider instance
 
         Returns:
-            Path to downloaded file or None on failure
+            Path to saved file or None on failure
         """
-        import requests
-        from requests.adapters import HTTPAdapter
-        from urllib3.util.retry import Retry
-
-        # Set up session with retry
-        session = requests.Session()
-        retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
-        )
-        session.mount("http://", HTTPAdapter(max_retries=retry_strategy))
-        session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
-
-        # Request headers
-        headers = {
-            "User-Agent": spider.settings.get(
-                "USER_AGENT",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            ),
-            "Accept": "application/pdf,*/*",
-        }
-
-        # Stream the download
-        response = session.get(
-            url,
-            headers=headers,
-            stream=True,
-            timeout=(10, 300),  # 10s connect, 300s read
-            allow_redirects=True,
-        )
-        response.raise_for_status()
-
         # Check content type
-        content_type = response.headers.get("Content-Type", "").split(";")[0].strip()
+        content_type = response.headers.get(b"Content-Type", b"").decode()
+        content_type = content_type.split(";")[0].strip()
         item["content_type"] = content_type
 
-        if content_type not in self.VALID_CONTENT_TYPES:
-            # Some servers don't set content-type correctly, check URL
-            if not url.lower().endswith(".pdf"):
-                self.logger.warning(
-                    f"Invalid content type for {url}: {content_type}"
-                )
-
-        # Check content length if available
-        content_length = response.headers.get("Content-Length")
-        if content_length and int(content_length) > self.MAX_FILE_SIZE:
-            raise ValueError(
-                f"File too large: {int(content_length)} bytes "
-                f"(max: {self.MAX_FILE_SIZE})"
+        # Check response size
+        body_size = len(response.body)
+        if body_size > self.MAX_FILE_SIZE:
+            self.logger.warning(
+                f"File too large: {body_size} bytes for {item.get('filename')}"
             )
+            return None
+
+        if body_size == 0:
+            self.logger.warning(f"Empty response for {item.get('filename')}")
+            return None
 
         # Generate temp filename
         filename = clean_filename(item.get("filename", "document.pdf"))
@@ -190,27 +183,28 @@ class PDFDownloadPipeline:
         if not filename.lower().endswith(".pdf"):
             filename += ".pdf"
 
+        # Add unique prefix to avoid collisions
         temp_path = os.path.join(self.temp_dir, f"{os.getpid()}_{filename}")
 
-        # Stream to file
-        total_size = 0
-        with open(temp_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
-                if chunk:
-                    total_size += len(chunk)
-                    if total_size > self.MAX_FILE_SIZE:
-                        f.close()
-                        os.remove(temp_path)
-                        raise ValueError(
-                            f"File exceeded max size during download: "
-                            f"{total_size} bytes"
-                        )
-                    f.write(chunk)
+        # Handle duplicate filenames
+        counter = 1
+        base_path = temp_path
+        while os.path.exists(temp_path):
+            name, ext = os.path.splitext(base_path)
+            temp_path = f"{name}_{counter}{ext}"
+            counter += 1
 
-        return temp_path
+        # Write file
+        try:
+            with open(temp_path, "wb") as f:
+                f.write(response.body)
+            return temp_path
+        except Exception as e:
+            self.logger.error(f"Failed to write file {temp_path}: {e}")
+            return None
 
     def close_spider(self, spider):
-        """Log statistics and clean up when spider closes."""
+        """Log statistics when spider closes."""
         self.logger.info(
             f"PDF download stats: {self.stats['total_downloads']} total, "
             f"{self.stats['successful']} successful, {self.stats['failed']} failed, "

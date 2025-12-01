@@ -61,19 +61,32 @@ class SupabasePipeline:
 
     def open_spider(self, spider):
         """Initialize Supabase client when spider opens."""
+        spider.logger.info("=" * 60)
+        spider.logger.info("SUPABASE CONFIGURATION")
+        spider.logger.info("=" * 60)
+
         if not self.supabase_url or not self.supabase_key:
-            self.logger.warning(
-                "Supabase not configured - metadata storage disabled"
-            )
+            spider.logger.warning("  Status: DISABLED")
+            spider.logger.warning("  Reason: SUPABASE_URL or SUPABASE_KEY not configured")
+            spider.logger.info("=" * 60)
             return
 
         try:
             from supabase import create_client
 
             self.client = create_client(self.supabase_url, self.supabase_key)
-            self.logger.info("Supabase client connected")
+
+            # Test connection by checking if we can access the table
+            test_result = self.client.table("planning_applications").select("id").limit(1).execute()
+
+            spider.logger.info("  Status: CONNECTED")
+            spider.logger.info(f"  URL: {self.supabase_url[:50]}...")
+            spider.logger.info("  Tables: planning_applications, application_documents")
+            spider.logger.info("=" * 60)
         except Exception as e:
-            self.logger.error(f"Failed to connect to Supabase: {e}")
+            spider.logger.error("  Status: FAILED")
+            spider.logger.error(f"  Error: {e}")
+            spider.logger.info("=" * 60)
             self.client = None
 
     def process_item(self, item, spider):

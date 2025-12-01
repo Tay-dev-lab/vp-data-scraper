@@ -20,6 +20,7 @@ class DocumentItem(scrapy.Item):
 
     # Source information
     document_url = scrapy.Field(output_processor=TakeFirst())
+    source_url = scrapy.Field(output_processor=TakeFirst())  # URL where document was found
     filename = scrapy.Field(
         input_processor=MapCompose(clean_text),
         output_processor=TakeFirst(),
