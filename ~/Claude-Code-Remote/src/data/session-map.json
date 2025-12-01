@@ -1,0 +1,92 @@
+{
+  "P9BGH034": {
+    "type": "pty",
+    "createdAt": 1764590904,
+    "expiresAt": 1764677304,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "eb88410c-5a90-4d24-a525-cd4b041b12ef",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "4DKIAL7O": {
+    "type": "pty",
+    "createdAt": 1764590904,
+    "expiresAt": 1764677304,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "08b48298-fa1d-406b-9c93-9d6594cf49ec",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "BIZKVQ0J": {
+    "type": "pty",
+    "createdAt": 1764591568,
+    "expiresAt": 1764677968,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "c5ff2760-51b9-46db-936a-20a21030d70c",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "QSGY16MP": {
+    "type": "pty",
+    "createdAt": 1764591576,
+    "expiresAt": 1764677976,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "0246d3cd-1286-441f-a8c9-f869ea2ee436",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "WWOV9G2N": {
+    "type": "pty",
+    "createdAt": 1764592699,
+    "expiresAt": 1764679099,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "7df08fe0-5021-48d7-99cc-b4a3ebaf5da2",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "AM9S1DIU": {
+    "type": "pty",
+    "createdAt": 1764592704,
+    "expiresAt": 1764679104,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "2fcde522-761f-48c5-bea0-6720b740917d",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "JYPVIE3W": {
+    "type": "pty",
+    "createdAt": 1764592755,
+    "expiresAt": 1764679155,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "a7a88440-698a-4f0d-bb51-2d9ce3bdd2fb",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "U108MNPG": {
+    "type": "pty",
+    "createdAt": 1764593934,
+    "expiresAt": 1764680334,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "75a853fa-fa28-4e95-9427-60a0d2559fc6",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "Y8K47U74": {
+    "type": "pty",
+    "createdAt": 1764594027,
+    "expiresAt": 1764680427,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "13d8a29e-23bb-4bb3-b541-a95f0f9ab916",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  },
+  "5YW7RI0S": {
+    "type": "pty",
+    "createdAt": 1764594063,
+    "expiresAt": 1764680463,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper",
+    "sessionId": "217a0c36-2707-406c-b167-c410636382fa",
+    "tmuxSession": "voice-to-xero",
+    "description": "waiting - vp-data-scraper"
+  }
+}

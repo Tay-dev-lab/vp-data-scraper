@@ -1,0 +1,275 @@
+"""
+Supabase Pipeline - stores application and document metadata.
+
+This pipeline runs LAST (priority 500) after all other processing.
+Only stores applications that have at least one matching document.
+"""
+
+import logging
+import os
+from datetime import datetime
+from typing import Optional, Dict, Any
+
+from ..items.application import PlanningApplicationItem
+from ..items.document import DocumentItem
+
+
+class SupabasePipeline:
+    """
+    Pipeline that stores metadata in Supabase.
+
+    Design:
+    - Applications are held until we see if they have documents
+    - Only applications with at least one uploaded document are stored
+    - Documents are linked to applications via foreign key
+
+    Settings:
+    - SUPABASE_URL: Supabase project URL
+    - SUPABASE_KEY: Supabase service key
+    """
+
+    def __init__(
+        self,
+        supabase_url: Optional[str] = None,
+        supabase_key: Optional[str] = None,
+    ):
+        self.supabase_url = supabase_url
+        self.supabase_key = supabase_key
+        self.client = None
+        self.logger = logging.getLogger(__name__)
+
+        # Track pending applications waiting for documents
+        self.pending_apps: Dict[str, PlanningApplicationItem] = {}
+
+        # Track which applications have documents
+        self.apps_with_docs: Dict[str, str] = {}  # app_ref -> supabase_id
+
+        self.stats = {
+            "applications_stored": 0,
+            "applications_dropped": 0,
+            "documents_stored": 0,
+            "errors": 0,
+        }
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        """Create pipeline instance from crawler."""
+        return cls(
+            supabase_url=crawler.settings.get("SUPABASE_URL"),
+            supabase_key=crawler.settings.get("SUPABASE_KEY"),
+        )
+
+    def open_spider(self, spider):
+        """Initialize Supabase client when spider opens."""
+        if not self.supabase_url or not self.supabase_key:
+            self.logger.warning(
+                "Supabase not configured - metadata storage disabled"
+            )
+            return
+
+        try:
+            from supabase import create_client
+
+            self.client = create_client(self.supabase_url, self.supabase_key)
+            self.logger.info("Supabase client connected")
+        except Exception as e:
+            self.logger.error(f"Failed to connect to Supabase: {e}")
+            self.client = None
+
+    def process_item(self, item, spider):
+        """
+        Process an item - store in Supabase if appropriate.
+
+        Applications are held pending; documents trigger storage.
+        """
+        if isinstance(item, PlanningApplicationItem):
+            return self._handle_application(item)
+        elif isinstance(item, DocumentItem):
+            return self._handle_document(item)
+        return item
+
+    def _handle_application(self, item: PlanningApplicationItem):
+        """
+        Handle a PlanningApplicationItem.
+
+        Hold the application pending - it will only be stored
+        if we receive at least one document for it.
+        """
+        app_ref = item.get("application_reference")
+        council = item.get("council_name")
+
+        if not app_ref:
+            return item
+
+        # Create composite key
+        key = f"{council}:{app_ref}"
+
+        # Store pending - will be committed when we see a document
+        self.pending_apps[key] = item
+        self.logger.debug(f"Holding application pending documents: {key}")
+
+        return item
+
+    def _handle_document(self, item: DocumentItem):
+        """
+        Handle a DocumentItem.
+
+        If this is the first document for an application, store the application.
+        Then store the document linked to the application.
+        """
+        if not self.client:
+            return item
+
+        # Only process successfully uploaded documents
+        if item.get("upload_status") != "success":
+            return item
+
+        app_ref = item.get("application_reference")
+        council = item.get("council_name")
+
+        if not app_ref:
+            return item
+
+        key = f"{council}:{app_ref}"
+
+        try:
+            # Check if we need to store the application first
+            if key not in self.apps_with_docs:
+                app_id = self._store_application(key)
+                if app_id:
+                    self.apps_with_docs[key] = app_id
+                else:
+                    self.logger.warning(
+                        f"Could not store application for document: {key}"
+                    )
+                    return item
+
+            # Store the document
+            app_id = self.apps_with_docs.get(key)
+            if app_id:
+                self._store_document(item, app_id)
+
+        except Exception as e:
+            self.logger.error(f"Error storing to Supabase: {e}")
+            self.stats["errors"] += 1
+
+        return item
+
+    def _store_application(self, key: str) -> Optional[str]:
+        """
+        Store a pending application to Supabase.
+
+        Returns the Supabase UUID of the stored application.
+        """
+        if key not in self.pending_apps:
+            # Application might have been rejected by filter
+            self.logger.debug(f"No pending application for key: {key}")
+            return None
+
+        item = self.pending_apps.pop(key)
+
+        data = {
+            "application_reference": item.get("application_reference"),
+            "council_name": item.get("council_name"),
+            "site_address": item.get("site_address"),
+            "postcode": item.get("postcode"),
+            "ward": item.get("ward"),
+            "parish": item.get("parish"),
+            "application_type": item.get("application_type"),
+            "proposal": item.get("proposal"),
+            "status": item.get("status"),
+            "decision": item.get("decision"),
+            "registration_date": item.get("registration_date"),
+            "decision_date": item.get("decision_date"),
+            "applicant_name": item.get("applicant_name"),
+            "agent_name": item.get("agent_name"),
+            "application_url": item.get("application_url"),
+            "scraped_at": datetime.utcnow().isoformat(),
+        }
+
+        # Remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+
+        try:
+            result = (
+                self.client.table("planning_applications")
+                .upsert(data, on_conflict="council_name,application_reference")
+                .execute()
+            )
+
+            if result.data:
+                app_id = result.data[0]["id"]
+                item["_supabase_id"] = app_id
+                self.stats["applications_stored"] += 1
+                self.logger.debug(f"Stored application: {key} -> {app_id}")
+                return app_id
+
+        except Exception as e:
+            self.logger.error(f"Failed to store application {key}: {e}")
+            self.stats["errors"] += 1
+
+        return None
+
+    def _store_document(self, item: DocumentItem, app_id: str):
+        """
+        Store a document record linked to an application.
+        """
+        data = {
+            "application_id": app_id,
+            "s3_bucket": item.get("s3_bucket"),
+            "s3_key": item.get("s3_key"),
+            "document_name": item.get("filename"),
+            "document_type": item.get("document_type"),
+            "file_size_bytes": item.get("file_size"),
+        }
+
+        # Remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+
+        try:
+            result = (
+                self.client.table("application_documents")
+                .upsert(data, on_conflict="s3_bucket,s3_key")
+                .execute()
+            )
+
+            if result.data:
+                item["_document_id"] = result.data[0]["id"]
+                self.stats["documents_stored"] += 1
+                self.logger.debug(
+                    f"Stored document: {item.get('filename')} -> {result.data[0]['id']}"
+                )
+
+        except Exception as e:
+            self.logger.error(f"Failed to store document: {e}")
+            self.stats["errors"] += 1
+
+    def close_spider(self, spider):
+        """Log statistics and report dropped applications when spider closes."""
+        # Count applications that were dropped (had no documents)
+        self.stats["applications_dropped"] = len(self.pending_apps)
+
+        if self.pending_apps:
+            self.logger.info(
+                f"Dropped {len(self.pending_apps)} applications with no matching documents"
+            )
+
+        self.logger.info(
+            f"Supabase stats: {self.stats['applications_stored']} applications stored, "
+            f"{self.stats['applications_dropped']} dropped (no docs), "
+            f"{self.stats['documents_stored']} documents stored, "
+            f"{self.stats['errors']} errors"
+        )
+
+        spider.crawler.stats.set_value(
+            "supabase/applications_stored", self.stats["applications_stored"]
+        )
+        spider.crawler.stats.set_value(
+            "supabase/applications_dropped", self.stats["applications_dropped"]
+        )
+        spider.crawler.stats.set_value(
+            "supabase/documents_stored", self.stats["documents_stored"]
+        )
+        spider.crawler.stats.set_value(
+            "supabase/errors", self.stats["errors"]
+        )
