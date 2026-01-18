@@ -144,6 +144,7 @@ class S3UploadPipeline:
                         "council_name": item.get("council_name", ""),
                         "document_type": item.get("document_type", ""),
                         "original_filename": item.get("filename", ""),
+                        "project_tag": item.get("project_tag", ""),
                     },
                 },
             )
@@ -184,8 +185,13 @@ class S3UploadPipeline:
         """
         Generate S3 key for a document.
 
-        Format: documents/{council}/{app_ref}/{doc_type}/{id}_{filename}.pdf
+        Format with project_tag:
+            documents/{project_tag}/{council}/{app_ref}/{doc_type}/{id}_{filename}.pdf
+
+        Format without project_tag (backward compatible):
+            documents/{council}/{app_ref}/{doc_type}/{id}_{filename}.pdf
         """
+        project_tag = item.get("project_tag")
         council = self._sanitize_key_component(
             item.get("council_name", "unknown")
         )
@@ -206,7 +212,11 @@ class S3UploadPipeline:
         # Add unique ID prefix to avoid collisions
         unique_id = generate_short_id(8)
 
-        return f"documents/{council}/{app_ref}/{doc_type}/{unique_id}_{filename}"
+        if project_tag:
+            project_tag = self._sanitize_key_component(project_tag)
+            return f"documents/{project_tag}/{council}/{app_ref}/{doc_type}/{unique_id}_{filename}"
+        else:
+            return f"documents/{council}/{app_ref}/{doc_type}/{unique_id}_{filename}"
 
     def _sanitize_key_component(self, value: str) -> str:
         """

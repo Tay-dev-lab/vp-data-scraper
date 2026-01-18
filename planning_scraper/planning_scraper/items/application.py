@@ -82,6 +82,9 @@ class PlanningApplicationItem(scrapy.Item):
         output_processor=TakeFirst(),
     )
 
+    # Project organization (for targeted scrapes)
+    project_tag = scrapy.Field(output_processor=TakeFirst())
+
     # Internal tracking (not stored in Supabase)
     _supabase_id = scrapy.Field()  # Set by SupabasePipeline after insert
     _portal_framework = scrapy.Field()  # e.g., "idox", "agile", "aspx"

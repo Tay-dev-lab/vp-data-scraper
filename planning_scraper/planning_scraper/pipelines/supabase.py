@@ -197,6 +197,7 @@ class SupabasePipeline:
             "applicant_name": item.get("applicant_name"),
             "agent_name": item.get("agent_name"),
             "application_url": item.get("application_url"),
+            "project_tag": item.get("project_tag"),
             "scraped_at": datetime.utcnow().isoformat(),
         }
 
@@ -234,6 +235,7 @@ class SupabasePipeline:
             "document_name": item.get("filename"),
             "document_type": item.get("document_type"),
             "file_size_bytes": item.get("file_size"),
+            "project_tag": item.get("project_tag"),
         }
 
         # Remove None values

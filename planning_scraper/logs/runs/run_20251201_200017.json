@@ -1,0 +1,64 @@
+{
+  "run_id": "20251201_200017",
+  "spider": "idox",
+  "start_time": "2025-12-01T20:00:17.613673",
+  "end_time": "2025-12-01T20:08:29.381346",
+  "duration_seconds": 491.767673,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 366,
+    "responses": 364,
+    "items_scraped": 81,
+    "items_dropped": 290
+  },
+  "response_codes": {
+    "200": 299,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 65,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 61,
+    "applications_accepted": 20,
+    "applications_rejected": 41,
+    "documents_total": 310,
+    "documents_accepted": 61,
+    "pdfs_downloaded": 61,
+    "pdfs_uploaded": 61,
+    "supabase_stored": 7
+  },
+  "retries": {
+    "total": 66,
+    "max_reached": 1
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "doncaster": {
+      "requests": 46,
+      "success": 46,
+      "failed": 0,
+      "items": 12
+    },
+    "leeds": {
+      "requests": 96,
+      "success": 96,
+      "failed": 0,
+      "items": 33
+    },
+    "chichester": {
+      "requests": 96,
+      "success": 96,
+      "failed": 0,
+      "items": 36
+    },
+    "unknown": {
+      "requests": 61,
+      "success": 61,
+      "failed": 0,
+      "items": 0
+    }
+  },
+  "errors": []
+}

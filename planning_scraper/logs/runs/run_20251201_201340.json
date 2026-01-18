@@ -1,0 +1,437 @@
+{
+  "run_id": "20251201_201340",
+  "spider": "idox",
+  "start_time": "2025-12-01T20:13:40.855668",
+  "end_time": "2025-12-01T21:50:35.731852",
+  "duration_seconds": 5814.876184,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 4873,
+    "responses": 4839,
+    "items_scraped": 2257,
+    "items_dropped": 3961
+  },
+  "response_codes": {
+    "200": 4744,
+    "302": 0,
+    "403": 13,
+    "404": 1,
+    "429": 77,
+    "500": 4
+  },
+  "pipeline_stats": {
+    "applications_total": 757,
+    "applications_accepted": 325,
+    "applications_rejected": 432,
+    "documents_total": 5461,
+    "documents_accepted": 1932,
+    "pdfs_downloaded": 1928,
+    "pdfs_uploaded": 1928,
+    "supabase_stored": 242
+  },
+  "retries": {
+    "total": 110,
+    "max_reached": 5
+  },
+  "failed_requests": [
+    {
+      "url": "https://publicaccess.braintree.gov.uk/online-applications/search.do?action=advanced",
+      "status": 403,
+      "council": "braintree",
+      "timestamp": "2025-12-01T20:13:42.313216"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?keyVal=T3X31YFPMIW00&activeTab=summary",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:18:55.286463"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?keyVal=T3X31YFPMIX00&activeTab=summary",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:18:56.273663"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?activeTab=details&keyVal=T3X30HFPMIS00",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:00.451326"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?activeTab=details&keyVal=T3X30IFPMIT00",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:21.795683"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?keyVal=T4JAV5FPFGP00&activeTab=summary",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:27.592987"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?keyVal=T4SG00FP0BM00&activeTab=summary",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:28.760045"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?keyVal=T4W9NVFPFVP00&activeTab=summary",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:33.213765"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/files/A82274EA9F8D8C722C62C9AB34871703/pdf/25_01100_ADV-NOISE_MANAGEMENT_PLAN-2199425.pdf",
+      "status": 403,
+      "council": "unknown",
+      "timestamp": "2025-12-01T20:19:37.392400"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/files/3E616D08DC6E076EC957438403B9B8E9/pdf/25_01100_ADV-PROPOSED_SITE_PLAN-2199619.pdf",
+      "status": 403,
+      "council": "unknown",
+      "timestamp": "2025-12-01T20:19:42.193699"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/files/F35ACEDFA330C0F4EBDFDD831D05A7B0/pdf/25_01100_ADV-EXISTING_SITE_PLAN-2199618.pdf",
+      "status": 403,
+      "council": "unknown",
+      "timestamp": "2025-12-01T20:19:46.251850"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?activeTab=details&keyVal=T4UF06FPFSM00",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:49.813316"
+    },
+    {
+      "url": "https://publicaccess.darlington.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T4A9XKFPMY700",
+      "status": 403,
+      "council": "darlington",
+      "timestamp": "2025-12-01T20:19:55.753285"
+    },
+    {
+      "url": "https://publicaccess.rushmoor.gov.uk/online-applications/files/B196D6639E4DA695016AF0B2717BBB7C/pdf/25_00536_LBC2-ALL_PLANS-1217083.pdf",
+      "status": 404,
+      "council": "unknown",
+      "timestamp": "2025-12-01T21:24:42.541464"
+    },
+    {
+      "url": "https://searchapplications.bromley.gov.uk/online-applications/advancedSearchResults.do?action=firstPage",
+      "status": 500,
+      "council": "bromley",
+      "timestamp": "2025-12-01T21:45:14.310284"
+    }
+  ],
+  "council_breakdown": {
+    "braintree": {
+      "requests": 1,
+      "success": 0,
+      "failed": 1,
+      "items": 0
+    },
+    "cotswold": {
+      "requests": 93,
+      "success": 93,
+      "failed": 0,
+      "items": 16
+    },
+    "planapp_knowsley": {
+      "requests": 16,
+      "success": 16,
+      "failed": 0,
+      "items": 4
+    },
+    "sevenoaks": {
+      "requests": 96,
+      "success": 96,
+      "failed": 0,
+      "items": 27
+    },
+    "fife": {
+      "requests": 96,
+      "success": 96,
+      "failed": 0,
+      "items": 51
+    },
+    "shropshire": {
+      "requests": 96,
+      "success": 96,
+      "failed": 0,
+      "items": 35
+    },
+    "inverclyde": {
+      "requests": 17,
+      "success": 17,
+      "failed": 0,
+      "items": 22
+    },
+    "cravendc": {
+      "requests": 72,
+      "success": 72,
+      "failed": 0,
+      "items": 28
+    },
+    "dartford": {
+      "requests": 64,
+      "success": 64,
+      "failed": 0,
+      "items": 110
+    },
+    "darlington": {
+      "requests": 69,
+      "success": 60,
+      "failed": 9,
+      "items": 34
+    },
+    "dover": {
+      "requests": 69,
+      "success": 69,
+      "failed": 0,
+      "items": 61
+    },
+    "unknown": {
+      "requests": 1932,
+      "success": 1928,
+      "failed": 4,
+      "items": 0
+    },
+    "e_lindsey": {
+      "requests": 80,
+      "success": 80,
+      "failed": 0,
+      "items": 53
+    },
+    "east_northamptonshire": {
+      "requests": 36,
+      "success": 36,
+      "failed": 0,
+      "items": 58
+    },
+    "eastherts": {
+      "requests": 80,
+      "success": 80,
+      "failed": 0,
+      "items": 134
+    },
+    "exeter": {
+      "requests": 66,
+      "success": 66,
+      "failed": 0,
+      "items": 19
+    },
+    "gloucester": {
+      "requests": 29,
+      "success": 29,
+      "failed": 0,
+      "items": 77
+    },
+    "gosport": {
+      "requests": 14,
+      "success": 14,
+      "failed": 0,
+      "items": 38
+    },
+    "fdean": {
+      "requests": 42,
+      "success": 42,
+      "failed": 0,
+      "items": 32
+    },
+    "guildford": {
+      "requests": 88,
+      "success": 88,
+      "failed": 0,
+      "items": 110
+    },
+    "hart": {
+      "requests": 76,
+      "success": 76,
+      "failed": 0,
+      "items": 50
+    },
+    "huntingdonshire": {
+      "requests": 73,
+      "success": 73,
+      "failed": 0,
+      "items": 15
+    },
+    "hastings": {
+      "requests": 29,
+      "success": 29,
+      "failed": 0,
+      "items": 89
+    },
+    "iow": {
+      "requests": 88,
+      "success": 88,
+      "failed": 0,
+      "items": 17
+    },
+    "kingston": {
+      "requests": 96,
+      "success": 96,
+      "failed": 0,
+      "items": 122
+    },
+    "maldon": {
+      "requests": 20,
+      "success": 20,
+      "failed": 0,
+      "items": 4
+    },
+    "mendip": {
+      "requests": 84,
+      "success": 84,
+      "failed": 0,
+      "items": 87
+    },
+    "newark_sherwooddc": {
+      "requests": 87,
+      "success": 87,
+      "failed": 0,
+      "items": 15
+    },
+    "newcastle_staffs": {
+      "requests": 37,
+      "success": 37,
+      "failed": 0,
+      "items": 9
+    },
+    "rushmoor": {
+      "requests": 41,
+      "success": 41,
+      "failed": 0,
+      "items": 25
+    },
+    "northumberland": {
+      "requests": 93,
+      "success": 93,
+      "failed": 0,
+      "items": 12
+    },
+    "nottinghamcity": {
+      "requests": 33,
+      "success": 33,
+      "failed": 0,
+      "items": 26
+    },
+    "rutland": {
+      "requests": 51,
+      "success": 51,
+      "failed": 0,
+      "items": 30
+    },
+    "southsomerset": {
+      "requests": 62,
+      "success": 62,
+      "failed": 0,
+      "items": 13
+    },
+    "solihull": {
+      "requests": 89,
+      "success": 89,
+      "failed": 0,
+      "items": 66
+    },
+    "southribble": {
+      "requests": 54,
+      "success": 54,
+      "failed": 0,
+      "items": 29
+    },
+    "spelthorne": {
+      "requests": 57,
+      "success": 57,
+      "failed": 0,
+      "items": 75
+    },
+    "sthelens": {
+      "requests": 39,
+      "success": 39,
+      "failed": 0,
+      "items": 95
+    },
+    "stevenage": {
+      "requests": 26,
+      "success": 26,
+      "failed": 0,
+      "items": 47
+    },
+    "surreyheath": {
+      "requests": 68,
+      "success": 68,
+      "failed": 0,
+      "items": 110
+    },
+    "clacks": {
+      "requests": 8,
+      "success": 8,
+      "failed": 0,
+      "items": 6
+    },
+    "stroud": {
+      "requests": 93,
+      "success": 93,
+      "failed": 0,
+      "items": 49
+    },
+    "brentwood": {
+      "requests": 74,
+      "success": 74,
+      "failed": 0,
+      "items": 122
+    },
+    "southdowns": {
+      "requests": 95,
+      "success": 95,
+      "failed": 0,
+      "items": 24
+    },
+    "www_eplanningcnpa": {
+      "requests": 2,
+      "success": 2,
+      "failed": 0,
+      "items": 0
+    },
+    "westminster": {
+      "requests": 2,
+      "success": 2,
+      "failed": 0,
+      "items": 0
+    },
+    "towerhamlets": {
+      "requests": 68,
+      "success": 68,
+      "failed": 0,
+      "items": 63
+    },
+    "bromley": {
+      "requests": 2,
+      "success": 1,
+      "failed": 1,
+      "items": 0
+    },
+    "planning_applications_midlothian": {
+      "requests": 2,
+      "success": 2,
+      "failed": 0,
+      "items": 0
+    },
+    "regs_thurrock": {
+      "requests": 76,
+      "success": 76,
+      "failed": 0,
+      "items": 116
+    },
+    "southampton": {
+      "requests": 78,
+      "success": 78,
+      "failed": 0,
+      "items": 32
+    }
+  },
+  "errors": []
+}

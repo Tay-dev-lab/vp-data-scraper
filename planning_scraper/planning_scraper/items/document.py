@@ -58,6 +58,9 @@ class DocumentItem(scrapy.Item):
     _application_id = scrapy.Field()  # Supabase UUID of parent application
     _document_id = scrapy.Field()  # Supabase UUID of this document record
 
+    # Project organization (for targeted scrapes)
+    project_tag = scrapy.Field(output_processor=TakeFirst())
+
     # Internal tracking
     _portal_framework = scrapy.Field()
     _scraped_at = scrapy.Field()

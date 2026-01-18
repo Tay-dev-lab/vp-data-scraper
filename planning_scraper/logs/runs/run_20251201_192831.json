@@ -1,0 +1,119 @@
+{
+  "run_id": "20251201_192831",
+  "spider": "idox",
+  "start_time": "2025-12-01T19:28:31.665904",
+  "end_time": "2025-12-01T19:30:47.137559",
+  "duration_seconds": 135.471655,
+  "close_reason": "shutdown",
+  "totals": {
+    "requests": 111,
+    "responses": 110,
+    "items_scraped": 6,
+    "items_dropped": 11
+  },
+  "response_codes": {
+    "200": 110,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 17,
+    "applications_accepted": 6,
+    "applications_rejected": 11,
+    "documents_total": 0,
+    "documents_accepted": 0,
+    "pdfs_downloaded": 0,
+    "pdfs_uploaded": 0,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 1,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "doncaster": {
+      "requests": 18,
+      "success": 18,
+      "failed": 0,
+      "items": 3
+    },
+    "leeds": {
+      "requests": 58,
+      "success": 58,
+      "failed": 0,
+      "items": 2
+    },
+    "chichester": {
+      "requests": 34,
+      "success": 34,
+      "failed": 0,
+      "items": 1
+    }
+  },
+  "errors": [
+    {
+      "url": "https://publicaccess.leeds.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T4U3TOJBMCW00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:10.222834"
+    },
+    {
+      "url": "https://publicaccess.chichester.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T45VO5ERMKT00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:22.005495"
+    },
+    {
+      "url": "https://publicaccess.leeds.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T3WUKDJBLG200",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:28.411252"
+    },
+    {
+      "url": "https://publicaccess.chichester.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T3WN38ERMF500",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:28.877055"
+    },
+    {
+      "url": "https://publicaccess.chichester.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T42T8SERMIC00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:29.356159"
+    },
+    {
+      "url": "https://publicaccess.leeds.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T3WQAJJB30600",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:30.121692"
+    },
+    {
+      "url": "https://publicaccess.chichester.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T42JF2ER0ZU00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:32.889737"
+    },
+    {
+      "url": "https://publicaccess.leeds.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T4242DJBLXS00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:33.756219"
+    },
+    {
+      "url": "https://publicaccess.chichester.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T42B2VERMHE00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:34.564984"
+    },
+    {
+      "url": "https://publicaccess.chichester.gov.uk/online-applications/applicationDetails.do?activeTab=documents&keyVal=T42JHEERMHW00",
+      "error": "'DocumentItem does not support field: source_url'",
+      "type": "KeyError",
+      "timestamp": "2025-12-01T19:29:36.417573"
+    }
+  ]
+}

@@ -2,7 +2,6 @@
 name = "planning-scraper"
 version = "0.1.0"
 description = "Scrapy application to scrape UK planning portals and download planning drawings/plans PDFs"
-readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
@@ -16,6 +15,8 @@ dependencies = [
     "supabase>=2.0",
     "python-dotenv>=1.0",
     "itemloaders>=1.1.0",
+    "brotli>=1.2.0",
+    "scrapy-playwright>=0.0.44",
 ]
 
 [project.optional-dependencies]

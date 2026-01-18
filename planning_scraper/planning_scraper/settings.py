@@ -17,7 +17,7 @@ load_dotenv()
 
 BOT_NAME = "planning_scraper"
 
-SPIDER_MODULES = ["planning_scraper.spiders.idox"]
+SPIDER_MODULES = ["planning_scraper.spiders.idox", "planning_scraper.spiders.camden"]
 NEWSPIDER_MODULE = "planning_scraper.spiders"
 
 # Crawl responsibly by identifying yourself
