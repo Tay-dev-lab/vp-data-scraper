@@ -1,0 +1,46 @@
+{
+  "run_id": "20260118_183034",
+  "spider": "ocella",
+  "start_time": "2026-01-18T18:30:34.224443",
+  "end_time": "2026-01-18T18:32:12.940065",
+  "duration_seconds": 98.715622,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 28,
+    "responses": 27,
+    "items_scraped": 15,
+    "items_dropped": 10
+  },
+  "response_codes": {
+    "200": 27,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 25,
+    "applications_accepted": 15,
+    "applications_rejected": 10,
+    "documents_total": 0,
+    "documents_accepted": 0,
+    "pdfs_downloaded": 0,
+    "pdfs_uploaded": 0,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 1,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "hillingdon": {
+      "requests": 27,
+      "success": 27,
+      "failed": 0,
+      "items": 15
+    }
+  },
+  "errors": []
+}

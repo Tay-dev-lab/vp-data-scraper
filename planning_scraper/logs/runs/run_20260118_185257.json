@@ -1,0 +1,46 @@
+{
+  "run_id": "20260118_185257",
+  "spider": "agile",
+  "start_time": "2026-01-18T18:52:57.681326",
+  "end_time": "2026-01-18T18:54:22.440778",
+  "duration_seconds": 84.759452,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 72,
+    "responses": 72,
+    "items_scraped": 30,
+    "items_dropped": 41
+  },
+  "response_codes": {
+    "200": 72,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 71,
+    "applications_accepted": 30,
+    "applications_rejected": 41,
+    "documents_total": 0,
+    "documents_accepted": 0,
+    "pdfs_downloaded": 0,
+    "pdfs_uploaded": 0,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 0,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "islington": {
+      "requests": 72,
+      "success": 72,
+      "failed": 0,
+      "items": 30
+    }
+  },
+  "errors": []
+}

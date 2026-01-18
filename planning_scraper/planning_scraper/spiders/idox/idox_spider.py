@@ -18,7 +18,7 @@ from scrapy.loader import ItemLoader
 
 from ...items.application import PlanningApplicationItem
 from ...items.document import DocumentItem
-from ...config.portals import IDOX_URLS
+from ...config.portals import get_active_idox_urls
 
 
 class IdoxSpider(scrapy.Spider):
@@ -31,6 +31,7 @@ class IdoxSpider(scrapy.Spider):
     Usage:
         scrapy crawl idox -a days_back=30
         scrapy crawl idox -a start_date=01/01/2025 -a end_date=31/01/2025
+        scrapy crawl idox -a region=london -a days_back=30  # London boroughs only
     """
 
     name = "idox"
@@ -54,10 +55,17 @@ class IdoxSpider(scrapy.Spider):
         days_back: int = 30,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
+        region: Optional[str] = None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+
+        # Store region filter
+        self.region = region
+
+        # Get URLs based on region filter
+        self.portal_urls = get_active_idox_urls(region=self.region)
 
         # Calculate date range
         if start_date and end_date:
@@ -71,7 +79,7 @@ class IdoxSpider(scrapy.Spider):
 
         # Build allowed domains from URLs
         self.allowed_domains = list(
-            {urlparse(url).netloc.split(":")[0] for url in IDOX_URLS}
+            {urlparse(url).netloc.split(":")[0] for url in self.portal_urls}
         )
 
         # Stats
@@ -90,24 +98,25 @@ class IdoxSpider(scrapy.Spider):
         self.logger.info("=" * 60)
         self.logger.info("IDOX SPIDER CONFIGURATION")
         self.logger.info("=" * 60)
+        self.logger.info(f"  Region: {self.region or 'all'}")
         self.logger.info(f"  Date Range: {self.start_date} to {self.end_date}")
-        self.logger.info(f"  Target Councils: {len(IDOX_URLS)}")
+        self.logger.info(f"  Target Councils: {len(self.portal_urls)}")
         self.logger.info(f"  Concurrent Requests: {self.custom_settings.get('CONCURRENT_REQUESTS', 8)}")
         self.logger.info(f"  Download Delay: {self.custom_settings.get('DOWNLOAD_DELAY', 1.0)}s")
         self.logger.info(f"  Autothrottle: ENABLED")
         self.logger.info("=" * 60)
         self.logger.info("")
         self.logger.info("Target councils:")
-        for i, url in enumerate(IDOX_URLS[:5], 1):
+        for i, url in enumerate(self.portal_urls[:5], 1):
             council = self._extract_council_name(url)
             self.logger.info(f"  {i}. {council}")
-        if len(IDOX_URLS) > 5:
-            self.logger.info(f"  ... and {len(IDOX_URLS) - 5} more")
+        if len(self.portal_urls) > 5:
+            self.logger.info(f"  ... and {len(self.portal_urls) - 5} more")
         self.logger.info("")
 
     def start_requests(self):
         """Generate initial requests for each IDOX portal."""
-        for url in IDOX_URLS:
+        for url in self.portal_urls:
             council_name = self._extract_council_name(url)
             self.logger.info(f"Starting scrape for council: {council_name}")
 

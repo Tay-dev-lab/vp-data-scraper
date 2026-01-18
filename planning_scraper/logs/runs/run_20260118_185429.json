@@ -1,0 +1,52 @@
+{
+  "run_id": "20260118_185429",
+  "spider": "agile",
+  "start_time": "2026-01-18T18:54:29.602168",
+  "end_time": "2026-01-18T18:57:11.543461",
+  "duration_seconds": 161.941293,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 146,
+    "responses": 146,
+    "items_scraped": 70,
+    "items_dropped": 74
+  },
+  "response_codes": {
+    "200": 146,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 144,
+    "applications_accepted": 70,
+    "applications_rejected": 74,
+    "documents_total": 0,
+    "documents_accepted": 0,
+    "pdfs_downloaded": 0,
+    "pdfs_uploaded": 0,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 0,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "redbridge": {
+      "requests": 74,
+      "success": 74,
+      "failed": 0,
+      "items": 40
+    },
+    "islington": {
+      "requests": 72,
+      "success": 72,
+      "failed": 0,
+      "items": 30
+    }
+  },
+  "errors": []
+}

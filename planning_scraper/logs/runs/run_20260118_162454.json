@@ -1,0 +1,107 @@
+{
+  "run_id": "20260118_162454",
+  "spider": "aspx",
+  "start_time": "2026-01-18T16:24:54.659832",
+  "end_time": "2026-01-18T16:25:29.735629",
+  "duration_seconds": 35.075797,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 11,
+    "responses": 11,
+    "items_scraped": 0,
+    "items_dropped": 0
+  },
+  "response_codes": {
+    "200": 11,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 0,
+    "applications_accepted": 0,
+    "applications_rejected": 0,
+    "documents_total": 0,
+    "documents_accepted": 0,
+    "pdfs_downloaded": 0,
+    "pdfs_uploaded": 0,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 0,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "merton": {
+      "requests": 11,
+      "success": 11,
+      "failed": 0,
+      "items": 0
+    }
+  },
+  "errors": [
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131582&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:06.197949"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131533&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:09.751761"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131329&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:12.226876"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131411&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:15.224443"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131443&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:18.106270"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131427&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:19.875447"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131418&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:21.504548"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131420&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:23.982615"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131480&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:26.953469"
+    },
+    {
+      "url": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/Generic/StdDetails.aspx?PT=Planning%20Applications%20On-Line&TYPE=PL/PlanningPK.xml&PARAM0=1000131494&XSLT=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/xslt/PL/PLDetails.xslt&FT=Planning%20Application%20Details&PUBLIC=Y&XMLSIDE=/Northgate/PlanningExplorerAA/SiteFiles/Skins/Merton/Menus/PL.xml&DAURI=PLANNING",
+      "error": "'PlanningApplicationItem does not support field: case_officer_name'",
+      "type": "KeyError",
+      "timestamp": "2026-01-18T16:25:29.734203"
+    }
+  ]
+}

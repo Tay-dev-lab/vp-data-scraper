@@ -1,0 +1,46 @@
+{
+  "run_id": "20260118_184242",
+  "spider": "agile",
+  "start_time": "2026-01-18T18:42:42.418906",
+  "end_time": "2026-01-18T18:44:11.317299",
+  "duration_seconds": 88.898393,
+  "close_reason": "finished",
+  "totals": {
+    "requests": 74,
+    "responses": 74,
+    "items_scraped": 40,
+    "items_dropped": 33
+  },
+  "response_codes": {
+    "200": 74,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 0
+  },
+  "pipeline_stats": {
+    "applications_total": 73,
+    "applications_accepted": 40,
+    "applications_rejected": 33,
+    "documents_total": 0,
+    "documents_accepted": 0,
+    "pdfs_downloaded": 0,
+    "pdfs_uploaded": 0,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 0,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "redbridge": {
+      "requests": 74,
+      "success": 74,
+      "failed": 0,
+      "items": 40
+    }
+  },
+  "errors": []
+}

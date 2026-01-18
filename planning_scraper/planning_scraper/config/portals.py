@@ -5,7 +5,7 @@ IDOX is the dominant framework (~55 councils).
 URLs are organized by prefix/pattern for easier maintenance.
 """
 
-from typing import List
+from typing import Dict, List, Optional
 
 # =============================================================================
 # IDOX Portal URLs - PRODUCTION MODE
@@ -101,9 +101,209 @@ IDOX_URLS: List[str] = (
 )
 
 
-def get_active_idox_urls() -> List[str]:
-    """Return list of active IDOX URLs for scraping."""
+# =============================================================================
+# LONDON BOROUGH URLS
+# =============================================================================
+
+LONDON_IDOX_URLS: Dict[str, str] = {
+    "barnet": "https://publicaccess.barnet.gov.uk/online-applications/search.do?action=advanced",
+    "bexley": "https://pa.bexley.gov.uk/online-applications/search.do?action=advanced",
+    "brent": "https://pa.brent.gov.uk/online-applications/search.do?action=advanced",
+    "bromley": "https://searchapplications.bromley.gov.uk/online-applications/search.do?action=advanced",
+    "city_of_london": "https://www.planning2.cityoflondon.gov.uk/online-applications/search.do?action=advanced",
+    "croydon": "https://publicaccess3.croydon.gov.uk/online-applications/search.do?action=advanced",
+    "ealing": "https://pam.ealing.gov.uk/online-applications/search.do?action=advanced",
+    "enfield": "https://planningandbuildingcontrol.enfield.gov.uk/online-applications/search.do?action=advanced",
+    "greenwich": "https://planning.royalgreenwich.gov.uk/online-applications/search.do?action=advanced",
+    "hammersmith_fulham": "https://public-access.lbhf.gov.uk/online-applications/search.do?action=advanced",
+    "kingston": "https://publicaccess.kingston.gov.uk/online-applications/search.do?action=advanced",
+    "lambeth": "https://planning.lambeth.gov.uk/online-applications/search.do?action=advanced",
+    "lewisham": "https://planning.lewisham.gov.uk/online-applications/search.do?action=advanced",
+    "newham": "https://pa.newham.gov.uk/online-applications/search.do?action=advanced",
+    "southwark": "https://planning.southwark.gov.uk/online-applications/search.do?action=advanced",
+    "sutton": "https://planningregister.sutton.gov.uk/online-applications/search.do?action=advanced",
+    "tower_hamlets": "https://development.towerhamlets.gov.uk/online-applications/search.do?action=advanced",
+    "westminster": "https://idoxpa.westminster.gov.uk/online-applications/search.do?action=advanced",
+}
+
+LONDON_ASPX_URLS: Dict[str, str] = {
+    # Camden uses /NECSWS/ path (verified working with Playwright)
+    "camden": "https://planningrecords.camden.gov.uk/NECSWS/PlanningExplorer/GeneralSearch.aspx",
+    # Merton uses /Northgate/PlanningExplorerAA/ path (verified 200 response)
+    "merton": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/GeneralSearch.aspx",
+    # Note: Hackney uses Council Direct framework (not ASPX) - requires custom spider
+    # Note: Islington uses Agile API, not ASPX - excluded from this list
+}
+
+# =============================================================================
+# LONDON OCELLA URLS
+# =============================================================================
+
+LONDON_OCELLA_URLS: Dict[str, str] = {
+    "havering": "https://development.havering.gov.uk/OcellaWeb/planningSearch",
+    "hillingdon": "https://planning.hillingdon.gov.uk/OcellaWeb/planningSearch",
+}
+
+# =============================================================================
+# LONDON AGILE URLS
+# =============================================================================
+# Agile Applications uses a REST API - no web scraping needed
+# API endpoint: https://planningapi.agileapplications.co.uk/api/application/search
+# Each council has: url (portal URL) and x_client (API client identifier)
+# Note: x_client may differ from council name (e.g., Islington uses "IS")
+
+LONDON_AGILE_URLS: Dict[str, Dict[str, str]] = {
+    # Redbridge uses Agile with custom domain
+    "redbridge": {
+        "url": "https://planning.redbridge.gov.uk/",
+        "x_client": "REDBRIDGE",
+    },
+    # Islington uses x-client "IS" (not "ISLINGTON")
+    "islington": {
+        "url": "https://planning.agileapplications.co.uk/islington/",
+        "x_client": "IS",
+    },
+}
+
+# =============================================================================
+# LONDON ATLAS URLS
+# =============================================================================
+# Atlas is a custom SolidStart-based portal used by RBKC (Kensington & Chelsea).
+# It wraps an Idox Uniform backend with a modern SPA frontend.
+# Uses server functions with seroval serialization for data fetching.
+
+LONDON_ATLAS_URLS: Dict[str, Dict[str, str]] = {
+    # RBKC - Royal Borough of Kensington and Chelsea
+    # Note: Legacy ASPX system offline due to cyber incident since Nov 2025
+    "rbkc": {
+        "url": "https://atlas.rbkc.gov.uk/planningsearch/",
+        "server_endpoint": "https://atlas.rbkc.gov.uk/planningsearch/_server/",
+    },
+}
+
+
+def get_active_idox_urls(region: Optional[str] = None) -> List[str]:
+    """
+    Return IDOX URLs for scraping.
+
+    Args:
+        region: Optional region filter. If 'london', returns only London borough URLs.
+
+    Returns:
+        List of IDOX portal URLs.
+    """
+    if region == "london":
+        return list(LONDON_IDOX_URLS.values())
     return IDOX_URLS.copy()
+
+
+def get_london_idox_urls() -> List[str]:
+    """Return list of London borough IDOX URLs."""
+    return list(LONDON_IDOX_URLS.values())
+
+
+def get_london_aspx_urls() -> List[str]:
+    """Return list of London borough ASPX URLs."""
+    return list(LONDON_ASPX_URLS.values())
+
+
+def get_aspx_urls(region: Optional[str] = None, council: Optional[str] = None) -> Dict[str, str]:
+    """
+    Return ASPX URLs for scraping.
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> URL mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_ASPX_URLS:
+            return {council: LONDON_ASPX_URLS[council]}
+        # Could extend to non-London ASPX councils here
+        return {}
+
+    if region == "london":
+        return LONDON_ASPX_URLS.copy()
+
+    # Return all ASPX URLs (currently just London)
+    return LONDON_ASPX_URLS.copy()
+
+
+def get_ocella_urls(region: Optional[str] = None, council: Optional[str] = None) -> Dict[str, str]:
+    """
+    Return OCELLA URLs for scraping.
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> URL mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_OCELLA_URLS:
+            return {council: LONDON_OCELLA_URLS[council]}
+        return {}
+
+    if region == "london":
+        return LONDON_OCELLA_URLS.copy()
+
+    # Return all OCELLA URLs (currently just London)
+    return LONDON_OCELLA_URLS.copy()
+
+
+def get_agile_urls(region: Optional[str] = None, council: Optional[str] = None) -> Dict[str, Dict[str, str]]:
+    """
+    Return Agile Applications URLs for scraping.
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> {url, x_client} mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_AGILE_URLS:
+            return {council: LONDON_AGILE_URLS[council]}
+        return {}
+
+    if region == "london":
+        return LONDON_AGILE_URLS.copy()
+
+    # Return all Agile URLs (currently just London)
+    return LONDON_AGILE_URLS.copy()
+
+
+def get_atlas_urls(region: Optional[str] = None, council: Optional[str] = None) -> Dict[str, Dict[str, str]]:
+    """
+    Return Atlas portal URLs for scraping.
+
+    Atlas is a SolidStart-based SPA used by RBKC (Kensington & Chelsea).
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> {url, server_endpoint} mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_ATLAS_URLS:
+            return {council: LONDON_ATLAS_URLS[council]}
+        return {}
+
+    if region == "london":
+        return LONDON_ATLAS_URLS.copy()
+
+    # Return all Atlas URLs (currently just RBKC)
+    return LONDON_ATLAS_URLS.copy()
 
 
 # =============================================================================
