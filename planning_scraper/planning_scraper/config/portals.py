@@ -131,6 +131,8 @@ LONDON_ASPX_URLS: Dict[str, str] = {
     "camden": "https://planningrecords.camden.gov.uk/NECSWS/PlanningExplorer/GeneralSearch.aspx",
     # Merton uses /Northgate/PlanningExplorerAA/ path (verified 200 response)
     "merton": "https://planning.merton.gov.uk/Northgate/PlanningExplorerAA/GeneralSearch.aspx",
+    # Wandsworth uses /Northgate/PlanningExplorer/ path
+    "wandsworth": "https://planning.wandsworth.gov.uk/Northgate/PlanningExplorer/GeneralSearch.aspx",
     # Note: Hackney uses Council Direct framework (not ASPX) - requires custom spider
     # Note: Islington uses Agile API, not ASPX - excluded from this list
 }
@@ -163,6 +165,11 @@ LONDON_AGILE_URLS: Dict[str, Dict[str, str]] = {
         "url": "https://planning.agileapplications.co.uk/islington/",
         "x_client": "IS",
     },
+    # Richmond upon Thames uses Agile with custom domain
+    "richmond": {
+        "url": "https://www2.richmond.gov.uk/lbrplanning/",
+        "x_client": "RICHMOND",
+    },
 }
 
 # =============================================================================
@@ -178,6 +185,51 @@ LONDON_ATLAS_URLS: Dict[str, Dict[str, str]] = {
     "rbkc": {
         "url": "https://atlas.rbkc.gov.uk/planningsearch/",
         "server_endpoint": "https://atlas.rbkc.gov.uk/planningsearch/_server/",
+    },
+}
+
+# =============================================================================
+# LONDON FA_SEARCH (Tascomi) URLS
+# =============================================================================
+# FA_SEARCH is a Tascomi-based portal used by several London boroughs.
+# These portals use WAF token protection and require Playwright for token extraction.
+# API endpoints: /fastweb/results.aspx, /fastweb/detail.aspx
+
+LONDON_FA_SEARCH_URLS: Dict[str, Dict[str, str]] = {
+    # Barking and Dagenham
+    "barking": {
+        "url": "https://pa.lbbd.gov.uk/online-applications/",
+        "search_url": "https://pa.lbbd.gov.uk/online-applications/search.do",
+    },
+    # Hackney
+    "hackney": {
+        "url": "https://planning.hackney.gov.uk/planning/",
+        "search_url": "https://planning.hackney.gov.uk/planning/search.do",
+    },
+    # Harrow
+    "harrow": {
+        "url": "https://planningsearch.harrow.gov.uk/fastweb/",
+        "search_url": "https://planningsearch.harrow.gov.uk/fastweb/",
+    },
+    # Waltham Forest
+    "waltham_forest": {
+        "url": "https://planning.walthamforest.gov.uk/planning/",
+        "search_url": "https://planning.walthamforest.gov.uk/planning/search.do",
+    },
+}
+
+# =============================================================================
+# LONDON ARCUS (Salesforce) URLS
+# =============================================================================
+# ARCUS is a Salesforce-based portal using Lightning Web Components (LWC).
+# Uses Aura API with JSON-RPC style requests. Requires fwuid context from initial page load.
+
+LONDON_ARCUS_URLS: Dict[str, Dict[str, str]] = {
+    # Haringey
+    "haringey": {
+        "url": "https://planningservices.haringey.gov.uk/",
+        "aura_endpoint": "https://planningservices.haringey.gov.uk/s/sfsites/aura",
+        "register_name": "Arcus_BE_Public_Register",
     },
 }
 
@@ -306,6 +358,58 @@ def get_atlas_urls(region: Optional[str] = None, council: Optional[str] = None) 
     return LONDON_ATLAS_URLS.copy()
 
 
+def get_fa_search_urls(region: Optional[str] = None, council: Optional[str] = None) -> Dict[str, Dict[str, str]]:
+    """
+    Return FA_SEARCH (Tascomi) portal URLs for scraping.
+
+    FA_SEARCH portals use WAF token protection and require special handling.
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> {url, search_url} mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_FA_SEARCH_URLS:
+            return {council: LONDON_FA_SEARCH_URLS[council]}
+        return {}
+
+    if region == "london":
+        return LONDON_FA_SEARCH_URLS.copy()
+
+    # Return all FA_SEARCH URLs (currently just London)
+    return LONDON_FA_SEARCH_URLS.copy()
+
+
+def get_arcus_urls(region: Optional[str] = None, council: Optional[str] = None) -> Dict[str, Dict[str, str]]:
+    """
+    Return ARCUS (Salesforce) portal URLs for scraping.
+
+    ARCUS portals use Salesforce Aura API with Lightning Web Components.
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> {url, aura_endpoint, register_name} mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_ARCUS_URLS:
+            return {council: LONDON_ARCUS_URLS[council]}
+        return {}
+
+    if region == "london":
+        return LONDON_ARCUS_URLS.copy()
+
+    # Return all ARCUS URLs (currently just Haringey)
+    return LONDON_ARCUS_URLS.copy()
+
+
 # =============================================================================
 # Already Scraped URLs (for reference)
 # =============================================================================
@@ -358,3 +462,47 @@ OCELLA_URLS = [
 ARCUS_URLS = [
     "https://eppingforestdc.my.site.com/pr/s/sfsites/aura",
 ]
+
+# =============================================================================
+# LONDON NECSWS ES/Presentation URLS
+# =============================================================================
+# NECSWS ES/Presentation is a planning portal framework used by several UK councils.
+# It differs from standard ASPX/Northgate with different URL patterns and form elements.
+# Requires Playwright for JavaScript-heavy page handling.
+
+LONDON_NECSWS_URLS: Dict[str, Dict[str, str]] = {
+    # Hounslow - London Borough
+    "hounslow": {
+        "url": "https://planningandbuilding.hounslow.gov.uk/NECSWS/ES/Presentation/Planning/OnlinePlanning/OnlinePlanningSearch",
+        "search_url": "https://planningandbuilding.hounslow.gov.uk/NECSWS/ES/Presentation/Planning/OnlinePlanning/OnlinePlanningSearch",
+        "base_url": "https://planningandbuilding.hounslow.gov.uk",
+    },
+}
+
+
+def get_necsws_urls(
+    region: Optional[str] = None, council: Optional[str] = None
+) -> Dict[str, Dict[str, str]]:
+    """
+    Return NECSWS ES/Presentation portal URLs for scraping.
+
+    NECSWS portals require Playwright for JavaScript handling.
+
+    Args:
+        region: Optional region filter. If 'london', returns London borough URLs.
+        council: Optional single council name to scrape.
+
+    Returns:
+        Dict of council_name -> {url, search_url, base_url} mappings.
+    """
+    if council:
+        # Single council mode
+        if council in LONDON_NECSWS_URLS:
+            return {council: LONDON_NECSWS_URLS[council]}
+        return {}
+
+    if region == "london":
+        return LONDON_NECSWS_URLS.copy()
+
+    # Return all NECSWS URLs (currently just Hounslow)
+    return LONDON_NECSWS_URLS.copy()

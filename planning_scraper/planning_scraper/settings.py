@@ -24,6 +24,9 @@ SPIDER_MODULES = [
     "planning_scraper.spiders.ocella",
     "planning_scraper.spiders.agile",
     "planning_scraper.spiders.atlas",
+    "planning_scraper.spiders.fa_search",
+    "planning_scraper.spiders.arcus",
+    "planning_scraper.spiders.necsws",
 ]
 NEWSPIDER_MODULE = "planning_scraper.spiders"
 
