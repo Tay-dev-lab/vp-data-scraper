@@ -90,3 +90,4 @@ class PlanningApplicationItem(scrapy.Item):
     _portal_framework = scrapy.Field()  # e.g., "idox", "agile", "aspx"
     _scraped_at = scrapy.Field()  # Timestamp when scraped
     _has_documents = scrapy.Field()  # Flag set after document processing
+    _llm_classification = scrapy.Field()  # LLM classification result (dict)

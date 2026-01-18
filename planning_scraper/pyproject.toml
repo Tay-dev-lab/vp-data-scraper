@@ -17,6 +17,7 @@ dependencies = [
     "itemloaders>=1.1.0",
     "brotli>=1.2.0",
     "scrapy-playwright>=0.0.44",
+    "aiohttp>=3.9",
 ]
 
 [project.optional-dependencies]

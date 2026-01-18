@@ -110,7 +110,9 @@ DOWNLOADER_MIDDLEWARES = {
 # Item Pipelines
 # =============================================================================
 # Pipeline priority order:
+#   40: Approval Filter (approved only) - NEW
 #   50: Application Filter (residential only)
+#   75: LLM Filter (new build/conversion 1-30 units) - NEW
 #  100: Document Filter (drawings only)
 #  200: PDF Download
 #  300: PDF Compress
@@ -118,7 +120,9 @@ DOWNLOADER_MIDDLEWARES = {
 #  500: Supabase (metadata storage)
 
 ITEM_PIPELINES = {
+    "planning_scraper.pipelines.approval_filter.ApprovalStatusFilterPipeline": 40,
     "planning_scraper.pipelines.application_filter.ApplicationFilterPipeline": 50,
+    "planning_scraper.pipelines.llm_filter.LLMApplicationFilterPipeline": 75,
     "planning_scraper.pipelines.document_filter.DocumentFilterPipeline": 100,
     "planning_scraper.pipelines.pdf_download.PDFDownloadPipeline": 200,
     "planning_scraper.pipelines.pdf_compress.PDFCompressPipeline": 300,
@@ -148,6 +152,35 @@ AWS_REGION = os.environ.get("AWS_REGION", "eu-west-2")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+# =============================================================================
+# LLM Settings (for intelligent application filtering)
+# =============================================================================
+
+# LLM Provider: 'openai', 'anthropic', or 'ollama'
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openai")
+
+# Model to use (provider-specific)
+# OpenAI: gpt-4o-mini (recommended), gpt-4o
+# Anthropic: claude-3-haiku-20240307, claude-3-5-sonnet-20241022
+# Ollama: llama3.1, mistral
+LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-4o-mini")
+
+# API Keys
+LLM_API_KEY = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+
+# LLM Filter Settings
+LLM_FILTER_ENABLED = os.environ.get("LLM_FILTER_ENABLED", "true").lower() == "true"
+LLM_FILTER_FALLBACK = os.environ.get("LLM_FILTER_FALLBACK", "permissive")  # 'permissive' or 'strict'
+LLM_FILTER_CACHE_TTL = int(os.environ.get("LLM_FILTER_CACHE_TTL", 86400))  # 24 hours
+LLM_FILTER_MIN_UNITS = int(os.environ.get("LLM_FILTER_MIN_UNITS", 1))
+LLM_FILTER_MAX_UNITS = int(os.environ.get("LLM_FILTER_MAX_UNITS", 30))
+
+# Approval Filter Settings
+APPROVAL_FILTER_ENABLED = os.environ.get("APPROVAL_FILTER_ENABLED", "true").lower() == "true"
+APPROVAL_FILTER_LENIENT = os.environ.get("APPROVAL_FILTER_LENIENT", "true").lower() == "true"
 
 # =============================================================================
 # PDF Processing Settings

@@ -556,5 +556,59 @@
     "sessionId": "61367337-0a01-4398-a825-fdeee09d0d18",
     "tmuxSession": "claude-code-remote",
     "description": "waiting - planning_scraper"
+  },
+  "7N19CCG7": {
+    "type": "pty",
+    "createdAt": 1768770446,
+    "expiresAt": 1768856846,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper/planning_scraper",
+    "sessionId": "fe8be419-723f-4402-92f1-82e87b14522b",
+    "tmuxSession": "claude-code-remote",
+    "description": "waiting - planning_scraper"
+  },
+  "OG025H5W": {
+    "type": "pty",
+    "createdAt": 1768770452,
+    "expiresAt": 1768856852,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper/planning_scraper",
+    "sessionId": "e7973c0b-d0bb-4c2c-a95f-8986c3e8cd0e",
+    "tmuxSession": "claude-code-remote",
+    "description": "waiting - planning_scraper"
+  },
+  "VXR8V1V0": {
+    "type": "pty",
+    "createdAt": 1768770453,
+    "expiresAt": 1768856853,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper/planning_scraper",
+    "sessionId": "23ffe2fa-8843-40ef-9a11-c119a1e89aee",
+    "tmuxSession": "claude-code-remote",
+    "description": "waiting - planning_scraper"
+  },
+  "A8KVOKSX": {
+    "type": "pty",
+    "createdAt": 1768770673,
+    "expiresAt": 1768857073,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper/planning_scraper",
+    "sessionId": "cc176544-8384-4b56-9ef2-2bb9fb138c85",
+    "tmuxSession": "claude-code-remote",
+    "description": "waiting - planning_scraper"
+  },
+  "A3BXMK3Y": {
+    "type": "pty",
+    "createdAt": 1768771735,
+    "expiresAt": 1768858135,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper/planning_scraper",
+    "sessionId": "e342fa49-8728-4d37-aa93-4617ee1535ed",
+    "tmuxSession": "claude-code-remote",
+    "description": "completed - planning_scraper"
+  },
+  "64GXOS3A": {
+    "type": "pty",
+    "createdAt": 1768771741,
+    "expiresAt": 1768858141,
+    "cwd": "/Users/andrewtaylor/vp-data-scraper/planning_scraper",
+    "sessionId": "a097ba2a-c9d9-434a-91f5-6074b99bf6b7",
+    "tmuxSession": "claude-code-remote",
+    "description": "waiting - planning_scraper"
   }
 }
