@@ -10,7 +10,7 @@ import asyncio
 from typing import Optional
 
 from scrapy.exceptions import DropItem
-from twisted.internet import defer
+from twisted.internet import threads
 
 from ..items.application import PlanningApplicationItem
 from ..services.llm import get_llm_provider, PlanningApplicationClassifier, LLMCache
@@ -106,6 +106,20 @@ class LLMApplicationFilterPipeline:
             settings=settings_dict,
         )
 
+    def _mark_application_approved(self, item):
+        """Mark an application as approved so its documents will be processed."""
+        council = item.get("council_name", "")
+        ref = item.get("application_reference", "")
+        key = f"{council}:{ref}"
+
+        # Store in a set that's accessible to other pipelines
+        if not hasattr(self, "_approved_apps"):
+            self._approved_apps = set()
+        self._approved_apps.add(key)
+
+        # Also store on the item so document filter can check
+        item["_llm_approved"] = True
+
     def _initialize_classifier(self):
         """Initialize the LLM classifier (lazy initialization)."""
         if self._initialized:
@@ -128,19 +142,40 @@ class LLMApplicationFilterPipeline:
             self.logger.error(f"Failed to initialize LLM classifier: {e}")
             raise
 
-    @defer.inlineCallbacks
+    def _run_classification_sync(self, proposal: str, application_type: str, address: str):
+        """
+        Run the async classification in a new event loop (for thread pool).
+
+        This runs in a separate thread via Twisted's deferToThread,
+        so it's safe to create a new event loop here.
+        """
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                self.classifier.classify(
+                    proposal=proposal,
+                    application_type=application_type,
+                    address=address,
+                )
+            )
+        finally:
+            loop.close()
+
     def process_item(self, item, spider):
         """
         Process an item through the LLM classifier.
 
-        Uses Twisted's inlineCallbacks for async LLM calls within Scrapy.
+        Uses Twisted's deferToThread to run async LLM calls
+        without blocking the reactor.
         """
         # Only filter PlanningApplicationItems
         if not isinstance(item, PlanningApplicationItem):
             return item
 
-        # Skip if filter is disabled
+        # Skip if filter is disabled - mark as approved since it passes through
         if not self.enabled:
+            self._mark_application_approved(item)
             return item
 
         self.stats["total"] += 1
@@ -153,6 +188,7 @@ class LLMApplicationFilterPipeline:
                 self.logger.error(f"Failed to initialize classifier: {e}")
                 if self.fallback_mode == "permissive":
                     self.stats["fallback_passed"] += 1
+                    self._mark_application_approved(item)
                     return item
                 raise DropItem(f"LLM classifier initialization failed: {e}")
 
@@ -167,69 +203,86 @@ class LLMApplicationFilterPipeline:
             )
             if self.fallback_mode == "permissive":
                 self.stats["fallback_passed"] += 1
+                self._mark_application_approved(item)
                 return item
             raise DropItem(
                 f"Application {item.get('application_reference')} has no proposal text"
             )
 
-        try:
-            # Run async classification in event loop
-            loop = asyncio.new_event_loop()
-            try:
-                result = loop.run_until_complete(
-                    self.classifier.classify(
-                        proposal=proposal,
-                        application_type=application_type,
-                        address=address,
-                    )
-                )
-            finally:
-                loop.close()
+        # Use deferToThread to run the async code in a thread pool
+        d = threads.deferToThread(
+            self._run_classification_sync,
+            proposal,
+            application_type,
+            address,
+        )
 
-            # Store classification result on item
-            item["_llm_classification"] = result.to_dict()
+        # Add callback to process the result
+        d.addCallback(self._handle_classification_result, item)
+        d.addErrback(self._handle_classification_error, item)
 
-            # Update statistics by development type
-            dev_type = result.development_type
-            if dev_type in self.stats:
-                self.stats[dev_type] += 1
+        return d
 
-            if result.qualifies:
-                self.stats["qualified"] += 1
-                self.logger.debug(
-                    f"Qualified: {item.get('application_reference')} - "
-                    f"{result.development_type} ({result.unit_count} units) - "
-                    f"{result.reason}"
-                )
-                return item
-            else:
-                self.stats["not_qualified"] += 1
-                self.logger.debug(
-                    f"Not qualified: {item.get('application_reference')} - "
-                    f"{result.development_type} - {result.reason}"
-                )
-                raise DropItem(
-                    f"Application {item.get('application_reference')} not qualified: "
-                    f"{result.reason}"
-                )
+    def _handle_classification_result(self, result, item):
+        """Handle successful classification result."""
+        # Store classification result on item
+        item["_llm_classification"] = result.to_dict()
 
-        except LLMError as e:
-            self.stats["errors"] += 1
-            self.logger.error(
-                f"LLM error for {item.get('application_reference')}: {e}"
+        # Update statistics by development type
+        dev_type = result.development_type
+        if dev_type in self.stats:
+            self.stats[dev_type] += 1
+
+        if result.qualifies:
+            self.stats["qualified"] += 1
+            self.logger.info(
+                f"LLM QUALIFIED: {item.get('application_reference')} - "
+                f"{result.development_type} ({result.unit_count} units) - "
+                f"{result.reason}"
+            )
+            # Track approved application for document filter
+            self._mark_application_approved(item)
+            return item
+        else:
+            self.stats["not_qualified"] += 1
+            self.logger.info(
+                f"LLM NOT QUALIFIED: {item.get('application_reference')} - "
+                f"{result.development_type} - {result.reason}"
+            )
+            raise DropItem(
+                f"Application {item.get('application_reference')} not qualified: "
+                f"{result.reason}"
             )
 
-            if self.fallback_mode == "permissive":
-                self.stats["fallback_passed"] += 1
-                self.logger.warning(
-                    f"Passing application {item.get('application_reference')} "
-                    f"due to LLM error (permissive mode)"
-                )
-                return item
-            else:
-                raise DropItem(
-                    f"Application {item.get('application_reference')} dropped due to LLM error: {e}"
-                )
+    def _handle_classification_error(self, failure, item):
+        """Handle classification error."""
+        # Extract the actual exception
+        error = failure.value
+
+        # If this is a DropItem from _handle_classification_result (intentional rejection),
+        # re-raise it - don't treat it as an error
+        if isinstance(error, DropItem):
+            return failure
+
+        # This is an actual error (API failure, timeout, etc.)
+        self.stats["errors"] += 1
+
+        self.logger.error(
+            f"LLM error for {item.get('application_reference')}: {error}"
+        )
+
+        if self.fallback_mode == "permissive":
+            self.stats["fallback_passed"] += 1
+            self.logger.warning(
+                f"Passing application {item.get('application_reference')} "
+                f"due to LLM error (permissive mode)"
+            )
+            self._mark_application_approved(item)
+            return item
+        else:
+            raise DropItem(
+                f"Application {item.get('application_reference')} dropped due to LLM error: {error}"
+            )
 
     def close_spider(self, spider):
         """Log statistics when spider closes."""

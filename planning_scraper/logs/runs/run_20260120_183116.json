@@ -1,0 +1,100 @@
+{
+  "run_id": "20260120_183116",
+  "spider": "idox",
+  "start_time": "2026-01-20T18:31:16.183511",
+  "end_time": "2026-01-20T18:33:22.318681",
+  "duration_seconds": 126.13517,
+  "close_reason": "shutdown",
+  "totals": {
+    "requests": 93,
+    "responses": 88,
+    "items_scraped": 17,
+    "items_dropped": 28
+  },
+  "response_codes": {
+    "200": 87,
+    "302": 0,
+    "403": 0,
+    "404": 0,
+    "429": 0,
+    "500": 1
+  },
+  "pipeline_stats": {
+    "applications_total": 0,
+    "applications_accepted": 0,
+    "applications_rejected": 0,
+    "documents_total": 42,
+    "documents_accepted": 17,
+    "pdfs_downloaded": 17,
+    "pdfs_uploaded": 17,
+    "supabase_stored": 0
+  },
+  "retries": {
+    "total": 6,
+    "max_reached": 0
+  },
+  "failed_requests": [],
+  "council_breakdown": {
+    "publicaccess3_croydon": {
+      "requests": 11,
+      "success": 11,
+      "failed": 0,
+      "items": 9
+    },
+    "bromley": {
+      "requests": 1,
+      "success": 1,
+      "failed": 0,
+      "items": 0
+    },
+    "www_planning2_cityoflondon": {
+      "requests": 6,
+      "success": 6,
+      "failed": 0,
+      "items": 0
+    },
+    "brent": {
+      "requests": 12,
+      "success": 12,
+      "failed": 0,
+      "items": 1
+    },
+    "pam_ealing": {
+      "requests": 13,
+      "success": 13,
+      "failed": 0,
+      "items": 7
+    },
+    "royalgreenwich": {
+      "requests": 5,
+      "success": 5,
+      "failed": 0,
+      "items": 0
+    },
+    "barnet": {
+      "requests": 1,
+      "success": 1,
+      "failed": 0,
+      "items": 0
+    },
+    "lambeth": {
+      "requests": 16,
+      "success": 16,
+      "failed": 0,
+      "items": 0
+    },
+    "kingston": {
+      "requests": 5,
+      "success": 5,
+      "failed": 0,
+      "items": 0
+    },
+    "unknown": {
+      "requests": 17,
+      "success": 17,
+      "failed": 0,
+      "items": 0
+    }
+  },
+  "errors": []
+}

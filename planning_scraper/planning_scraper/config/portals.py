@@ -234,16 +234,33 @@ LONDON_ARCUS_URLS: Dict[str, Dict[str, str]] = {
 }
 
 
-def get_active_idox_urls(region: Optional[str] = None) -> List[str]:
+def get_active_idox_urls(region: Optional[str] = None, council: Optional[str] = None) -> List[str]:
     """
     Return IDOX URLs for scraping.
 
     Args:
         region: Optional region filter. If 'london', returns only London borough URLs.
+        council: Optional council name to scrape a single council.
 
     Returns:
         List of IDOX portal URLs.
     """
+    # Single council mode
+    if council:
+        council_lower = council.lower().replace("-", "_").replace(" ", "_")
+        # Check London IDOX URLs first
+        if council_lower in LONDON_IDOX_URLS:
+            return [LONDON_IDOX_URLS[council_lower]]
+        # Check all IDOX URLs for matching council name
+        for url in IDOX_URLS:
+            if council_lower in url.lower():
+                return [url]
+        # Not found
+        raise ValueError(
+            f"Council '{council}' not found in IDOX portals. "
+            f"Available London councils: {list(LONDON_IDOX_URLS.keys())}"
+        )
+
     if region == "london":
         return list(LONDON_IDOX_URLS.values())
     return IDOX_URLS.copy()

@@ -32,6 +32,7 @@ class IdoxSpider(scrapy.Spider):
         scrapy crawl idox -a days_back=30
         scrapy crawl idox -a start_date=01/01/2025 -a end_date=31/01/2025
         scrapy crawl idox -a region=london -a days_back=30  # London boroughs only
+        scrapy crawl idox -a council=barnet -a days_back=7  # Single council
     """
 
     name = "idox"
@@ -56,16 +57,18 @@ class IdoxSpider(scrapy.Spider):
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         region: Optional[str] = None,
+        council: Optional[str] = None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
-        # Store region filter
+        # Store filters
         self.region = region
+        self.council = council
 
-        # Get URLs based on region filter
-        self.portal_urls = get_active_idox_urls(region=self.region)
+        # Get URLs based on region/council filter
+        self.portal_urls = get_active_idox_urls(region=self.region, council=self.council)
 
         # Calculate date range
         if start_date and end_date:
@@ -99,6 +102,7 @@ class IdoxSpider(scrapy.Spider):
         self.logger.info("IDOX SPIDER CONFIGURATION")
         self.logger.info("=" * 60)
         self.logger.info(f"  Region: {self.region or 'all'}")
+        self.logger.info(f"  Council: {self.council or 'all'}")
         self.logger.info(f"  Date Range: {self.start_date} to {self.end_date}")
         self.logger.info(f"  Target Councils: {len(self.portal_urls)}")
         self.logger.info(f"  Concurrent Requests: {self.custom_settings.get('CONCURRENT_REQUESTS', 8)}")

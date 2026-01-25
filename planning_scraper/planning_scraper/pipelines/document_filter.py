@@ -39,13 +39,18 @@ class DocumentFilterPipeline:
             "total_documents": 0,
             "accepted": 0,
             "rejected": 0,
+            "skipped_no_parent": 0,
             "by_type": {},
         }
+        # Track approved applications (populated by LLM filter)
+        self._approved_apps = set()
 
     @classmethod
     def from_crawler(cls, crawler):
         """Create pipeline instance from crawler."""
-        return cls()
+        pipeline = cls()
+        pipeline.crawler = crawler
+        return pipeline
 
     def process_item(self, item, spider):
         """
@@ -55,9 +60,27 @@ class DocumentFilterPipeline:
         """
         # Only filter DocumentItems
         if not isinstance(item, DocumentItem):
+            # Track approved applications from LLM filter
+            if item.get("_llm_approved"):
+                council = item.get("council_name", "")
+                ref = item.get("application_reference", "")
+                key = f"{council}:{ref}"
+                self._approved_apps.add(key)
             return item
 
         self.stats["total_documents"] += 1
+
+        # Check if parent application was approved
+        council = item.get("council_name", "")
+        ref = item.get("application_reference", "")
+        key = f"{council}:{ref}"
+
+        if key not in self._approved_apps:
+            self.stats["skipped_no_parent"] += 1
+            self.logger.debug(
+                f"Skipping document {item.get('filename')} - parent application {key} not approved"
+            )
+            raise DropItem(f"Document skipped - parent application {ref} was not approved")
 
         filename = item.get("filename", "")
         match = self.matcher.match(filename)
@@ -94,7 +117,8 @@ class DocumentFilterPipeline:
         """Log statistics when spider closes."""
         self.logger.info(
             f"Document filter stats: {self.stats['total_documents']} total, "
-            f"{self.stats['accepted']} accepted, {self.stats['rejected']} rejected"
+            f"{self.stats['accepted']} accepted, {self.stats['rejected']} rejected, "
+            f"{self.stats['skipped_no_parent']} skipped (no approved parent)"
         )
         self.logger.info(f"Documents by type: {self.stats['by_type']}")
 
@@ -106,6 +130,9 @@ class DocumentFilterPipeline:
         )
         spider.crawler.stats.set_value(
             "document_filter/rejected", self.stats["rejected"]
+        )
+        spider.crawler.stats.set_value(
+            "document_filter/skipped_no_parent", self.stats["skipped_no_parent"]
         )
         for doc_type, count in self.stats["by_type"].items():
             spider.crawler.stats.set_value(
