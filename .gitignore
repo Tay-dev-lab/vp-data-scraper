@@ -16,3 +16,9 @@ wheels/
 # Large data files
 legacy-code/utils/BasicCompanyDataAsOneFile-2025-03-01.csv
 *.csv
+
+# Runtime logs
+planning_scraper/logs/runs/
+
+# Claude Code Remote session data
+**/Claude-Code-Remote/

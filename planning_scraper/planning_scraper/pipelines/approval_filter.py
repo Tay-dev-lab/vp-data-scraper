@@ -3,6 +3,8 @@ Approval Status Filter Pipeline - filters to approved applications only.
 
 This pipeline runs FIRST (priority 40) to avoid processing applications
 that haven't been approved.
+
+Uses the ApplicationStateTracker to coordinate with async pipelines.
 """
 
 import re
@@ -10,6 +12,7 @@ import logging
 from scrapy.exceptions import DropItem
 
 from ..items.application import PlanningApplicationItem
+from ..utils.state_tracker import ApplicationStateTracker
 
 
 class ApprovalStatusFilterPipeline:
@@ -83,6 +86,16 @@ class ApprovalStatusFilterPipeline:
         lenient_mode = crawler.settings.getbool("APPROVAL_FILTER_LENIENT", True)
         return cls(enabled=enabled, lenient_mode=lenient_mode)
 
+    def open_spider(self, spider):
+        """Initialize state tracker on spider if not already present."""
+        # Initialize the rejected applications set (legacy)
+        if not hasattr(spider, "_rejected_applications"):
+            spider._rejected_applications = set()
+
+        # Initialize the application state tracker (shared across pipelines)
+        if not hasattr(spider, "_app_state"):
+            spider._app_state = ApplicationStateTracker()
+
     def process_item(self, item, spider):
         """
         Process an item through the approval filter.
@@ -131,6 +144,7 @@ class ApprovalStatusFilterPipeline:
                 self.logger.debug(
                     f"Rejected (refused) application: {item.get('application_reference')} - {decision}"
                 )
+                self._mark_application_rejected(item, spider)
                 raise DropItem(
                     f"Application {item.get('application_reference')} was refused: {decision}"
                 )
@@ -140,9 +154,25 @@ class ApprovalStatusFilterPipeline:
         self.logger.debug(
             f"Non-approved status for {item.get('application_reference')}: {decision}"
         )
+        self._mark_application_rejected(item, spider)
         raise DropItem(
             f"Application {item.get('application_reference')} not approved: {decision}"
         )
+
+    def _mark_application_rejected(self, item, spider):
+        """Mark an application as rejected so its documents will be dropped."""
+        council = item.get("council_name", "")
+        ref = item.get("application_reference", "")
+        key = f"{council}:{ref}"
+
+        # Mark in state tracker (primary mechanism)
+        if hasattr(spider, "_app_state"):
+            spider._app_state.mark_rejected(key)
+
+        # Also mark in legacy set for backwards compatibility
+        if not hasattr(spider, "_rejected_applications"):
+            spider._rejected_applications = set()
+        spider._rejected_applications.add(key)
 
     def close_spider(self, spider):
         """Log statistics when spider closes."""

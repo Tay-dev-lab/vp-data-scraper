@@ -5,6 +5,8 @@ A Scrapy-based web scraper that extracts planning applications and PDF documents
 ## Features
 
 - Scrapes 50+ UK council planning portals using IDOX framework
+- **LLM-powered intelligent filtering** for new builds and conversions (1-30 units)
+- Approval status filtering (approved applications only)
 - Filters for residential applications (householder, extensions, loft conversions, small new builds)
 - Extracts planning drawings only (site plans, floor plans, elevations, sections)
 - Downloads and compresses large PDFs (>10MB)
@@ -53,10 +55,20 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-service-key
 PDF_TEMP_DIR=/tmp/planning-pdfs
 
+# LLM Configuration (for intelligent filtering)
+LLM_PROVIDER=openai              # openai, anthropic, or ollama
+LLM_MODEL=gpt-4o-mini            # Model to use
+LLM_API_KEY=sk-...               # API key (OpenAI or Anthropic)
+
 # Optional
 AWS_REGION=eu-west-2
 PROXY_URL=http://user:pass@proxy:port
 LOG_LEVEL=INFO
+
+# Filter Options
+LLM_FILTER_ENABLED=true          # Enable/disable LLM filtering
+LLM_FILTER_FALLBACK=permissive   # permissive (pass on error) or strict (drop)
+APPROVAL_FILTER_ENABLED=true     # Enable/disable approval status filter
 ```
 
 ### Running the Scraper
@@ -65,13 +77,105 @@ LOG_LEVEL=INFO
 cd planning_scraper
 
 # Scrape all IDOX councils for the last 30 days
-scrapy crawl idox -a days_back=30
+uv run scrapy crawl idox -a days_back=30
 
 # Scrape with custom date range (DD/MM/YYYY format)
-scrapy crawl idox -a start_date=01/01/2025 -a end_date=31/01/2025
+uv run scrapy crawl idox -a start_date=01/01/2025 -a end_date=31/01/2025
 
 # Run Camden-specific spider (bypasses filters, downloads all documents)
-scrapy crawl camden
+uv run scrapy crawl camden
+```
+
+### Command Line Reference
+
+#### Spider Arguments (`-a`)
+
+| Argument | Description | Example |
+|----------|-------------|---------|
+| `days_back` | Scrape applications from last N days (default: 30) | `-a days_back=7` |
+| `start_date` | Start date for search (DD/MM/YYYY format) | `-a start_date=01/01/2025` |
+| `end_date` | End date for search (DD/MM/YYYY format) | `-a end_date=31/01/2025` |
+| `region` | Filter by region (`london` for London boroughs) | `-a region=london` |
+| `council` | Scrape a specific council only | `-a council=barnet` |
+
+#### Settings Overrides (`-s`)
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| `LLM_FILTER_ENABLED` | Enable/disable LLM classification filter | `-s LLM_FILTER_ENABLED=false` |
+| `APPROVAL_FILTER_ENABLED` | Enable/disable approval status filter | `-s APPROVAL_FILTER_ENABLED=false` |
+| `LOG_LEVEL` | Set logging verbosity | `-s LOG_LEVEL=DEBUG` |
+| `CONCURRENT_REQUESTS` | Max concurrent requests | `-s CONCURRENT_REQUESTS=4` |
+| `DOWNLOAD_DELAY` | Delay between requests (seconds) | `-s DOWNLOAD_DELAY=2.0` |
+
+### Scraping London Only
+
+To scrape only London borough councils:
+
+```bash
+# IDOX London boroughs (18 councils)
+uv run scrapy crawl idox -a region=london -a days_back=30
+
+# Specific London borough
+uv run scrapy crawl idox -a region=london -a council=barnet -a days_back=7
+
+# ASPX London boroughs (Camden, Merton, Wandsworth)
+uv run scrapy crawl aspx -a region=london -a days_back=30
+
+# Ocella London boroughs (Havering, Hillingdon)
+uv run scrapy crawl ocella -a region=london -a days_back=30
+
+# Agile London boroughs (Redbridge, Islington, Richmond)
+uv run scrapy crawl agile -a region=london -a days_back=30
+
+# Atlas (Kensington & Chelsea)
+uv run scrapy crawl atlas -a region=london -a days_back=30
+
+# FA_SEARCH (Barking, Hackney, Harrow, Waltham Forest)
+uv run scrapy crawl fa_search -a region=london -a days_back=30
+
+# ARCUS/Salesforce (Haringey)
+uv run scrapy crawl arcus -a region=london -a days_back=30
+
+# NECSWS (Hounslow)
+uv run scrapy crawl necsws -a region=london -a days_back=30
+```
+
+**London Borough Coverage by Spider:**
+
+| Spider | Boroughs |
+|--------|----------|
+| `idox` | Barnet, Bexley, Brent, Bromley, City of London, Croydon, Ealing, Enfield, Greenwich, Hammersmith & Fulham, Kingston, Lambeth, Lewisham, Newham, Southwark, Sutton, Tower Hamlets, Westminster |
+| `aspx` | Camden, Merton, Wandsworth |
+| `ocella` | Havering, Hillingdon |
+| `agile` | Islington, Redbridge, Richmond |
+| `atlas` | Kensington & Chelsea |
+| `fa_search` | Barking & Dagenham, Hackney, Harrow, Waltham Forest |
+| `arcus` | Haringey |
+| `necsws` | Hounslow |
+
+### Common Usage Examples
+
+```bash
+# Quick test: single council, 1 day, debug logging
+uv run scrapy crawl idox -a council=barnet -a days_back=1 -s LOG_LEVEL=DEBUG
+
+# London only, last week, with LLM filtering
+uv run scrapy crawl idox -a region=london -a days_back=7
+
+# London only, no LLM filter (faster, uses regex only)
+uv run scrapy crawl idox -a region=london -a days_back=7 -s LLM_FILTER_ENABLED=false
+
+# All approved applications (skip LLM and residential filters)
+uv run scrapy crawl idox -a days_back=7 \
+  -s LLM_FILTER_ENABLED=false \
+  -s "ITEM_PIPELINES={\"planning_scraper.pipelines.approval_filter.ApprovalStatusFilterPipeline\": 40, \"planning_scraper.pipelines.document_filter.DocumentFilterPipeline\": 100, \"planning_scraper.pipelines.pdf_download.PDFDownloadPipeline\": 200, \"planning_scraper.pipelines.pdf_compress.PDFCompressPipeline\": 300, \"planning_scraper.pipelines.s3_upload.S3UploadPipeline\": 400, \"planning_scraper.pipelines.supabase.SupabasePipeline\": 500}"
+
+# Output to JSON file (for debugging)
+uv run scrapy crawl idox -a council=barnet -a days_back=1 -o output.json
+
+# Slower, more polite scraping
+uv run scrapy crawl idox -a days_back=7 -s CONCURRENT_REQUESTS=2 -s DOWNLOAD_DELAY=3.0
 ```
 
 ## Architecture
@@ -79,17 +183,37 @@ scrapy crawl camden
 ### Data Pipeline
 
 ```
-┌─────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ Spider  │────▶│ Application      │────▶│ Document         │────▶│ PDF Download    │
-│         │     │ Filter (50)      │     │ Filter (100)     │     │ Pipeline (200)  │
-└─────────┘     │ Residential only │     │ Drawings only    │     │                 │
-                └──────────────────┘     └──────────────────┘     └────────┬────────┘
+┌─────────┐     ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│ Spider  │────▶│ Approval Filter  │────▶│ Application      │────▶│ LLM Filter       │
+│         │     │ (40)             │     │ Filter (50)      │     │ (75)             │
+└─────────┘     │ Approved only    │     │ Residential only │     │ New build/conv.  │
+                └──────────────────┘     └──────────────────┘     └────────┬─────────┘
                                                                            │
-┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐     │
-│ Supabase        │◀────│ S3 Upload        │◀────│ PDF Compress     │◀────┘
-│ Pipeline (500)  │     │ Pipeline (400)   │     │ Pipeline (300)   │
-│ Store metadata  │     │ Upload to AWS    │     │ >10MB threshold  │
-└─────────────────┘     └──────────────────┘     └──────────────────┘
+                ┌──────────────────┐     ┌─────────────────┐               │
+                │ Document Filter  │◀────┘                 │               │
+                │ (100)            │                       │               │
+                │ Drawings only    │                       │               │
+                └────────┬─────────┘                       │               │
+                         │                                 │               │
+┌─────────────────┐     ┌┴─────────────────┐     ┌────────┴─────────┐     │
+│ Supabase        │◀────│ S3 Upload        │◀────│ PDF Compress     │◀────┤
+│ Pipeline (500)  │     │ Pipeline (400)   │     │ Pipeline (300)   │     │
+│ Store metadata  │     │ Upload to AWS    │     │ >10MB threshold  │     │
+└─────────────────┘     └──────────────────┘     └──────────────────┘     │
+                                                                          │
+                        ┌──────────────────┐                              │
+                        │ PDF Download     │◀─────────────────────────────┘
+                        │ Pipeline (200)   │
+                        └──────────────────┘
+```
+
+**Filter Funnel (estimated):**
+```
+100% Applications Scraped
+    ↓ Approval Filter: ~30% pass (approved only)
+    ↓ Regex Residential: ~50% pass (householder/residential types)
+    ↓ LLM Filter: ~30% pass (new build or conversion, 1-30 units)
+    → ~4.5% get documents downloaded
 ```
 
 ### Directory Structure
@@ -101,15 +225,24 @@ planning_scraper/
 │   │   ├── idox/          # IDOX portal spider (50+ councils)
 │   │   └── camden/        # Camden ASPX spider (Playwright)
 │   ├── pipelines/         # Processing stages
-│   │   ├── application_filter.py   # Residential filter
-│   │   ├── document_filter.py      # Drawing filter
-│   │   ├── pdf_download.py         # Download to temp
-│   │   ├── pdf_compress.py         # Ghostscript compression
-│   │   ├── s3_upload.py            # AWS S3 upload
-│   │   └── supabase.py             # Metadata storage
+│   │   ├── approval_filter.py      # Approval status filter (40)
+│   │   ├── application_filter.py   # Residential filter (50)
+│   │   ├── llm_filter.py           # LLM classification filter (75)
+│   │   ├── document_filter.py      # Drawing filter (100)
+│   │   ├── pdf_download.py         # Download to temp (200)
+│   │   ├── pdf_compress.py         # Ghostscript compression (300)
+│   │   ├── s3_upload.py            # AWS S3 upload (400)
+│   │   └── supabase.py             # Metadata storage (500)
 │   ├── services/          # Business logic
 │   │   ├── application_filter.py   # Residential detection
-│   │   └── pdf_filter.py           # Drawing pattern matching
+│   │   ├── pdf_filter.py           # Drawing pattern matching
+│   │   └── llm/                    # LLM classification service
+│   │       ├── classifier.py       # Planning application classifier
+│   │       ├── cache.py            # In-memory response cache
+│   │       └── providers/          # LLM provider implementations
+│   │           ├── openai_provider.py
+│   │           ├── anthropic_provider.py
+│   │           └── ollama_provider.py
 │   ├── config/            # Configuration
 │   │   ├── portals.py     # Portal URLs
 │   │   └── patterns.py    # Filter patterns
@@ -123,6 +256,88 @@ planning_scraper/
 ├── logs/                  # Run logs (JSON)
 ├── tests/                 # Test suite
 └── pyproject.toml         # Project config
+```
+
+## LLM-Powered Filtering
+
+The scraper uses an LLM to intelligently classify planning applications and filter for qualifying developments:
+
+### Qualifying Criteria
+
+Applications must meet ALL of these criteria:
+1. **Status**: Application must be APPROVED
+2. **Type**: Must be either:
+   - **New Build**: Construction of new residential dwelling(s)
+   - **Conversion**: Change of non-residential building to residential use
+3. **Scale**: Must propose 1-30 residential units
+
+### What Gets Filtered Out
+
+- Extensions or alterations to existing homes
+- Loft conversions in existing properties
+- Change of use between residential types (e.g., HMO to flats)
+- Care homes, nursing homes, student accommodation
+- Commercial, retail, industrial developments
+- Applications that are refused, pending, or withdrawn
+
+### Supported LLM Providers
+
+| Provider | Model | Cost | Notes |
+|----------|-------|------|-------|
+| **OpenAI** (default) | gpt-4o-mini | ~$0.15/1M tokens | Fast, recommended |
+| Anthropic | claude-3-haiku | ~$0.25/1M tokens | Alternative |
+| Ollama | llama3.1, mistral | Free | Local, requires Ollama server |
+
+### Configuration
+
+```bash
+# Enable LLM filtering (default: true)
+LLM_FILTER_ENABLED=true
+
+# Choose provider
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o-mini
+LLM_API_KEY=sk-...
+
+# For Anthropic
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+
+# For local Ollama
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+LLM_MODEL=llama3.1
+
+# Fallback behavior on LLM errors
+LLM_FILTER_FALLBACK=permissive  # pass items on error (default)
+LLM_FILTER_FALLBACK=strict      # drop items on error
+
+# Unit count range
+LLM_FILTER_MIN_UNITS=1
+LLM_FILTER_MAX_UNITS=30
+```
+
+### Cost Estimates
+
+| Volume | LLM Cost | Bandwidth Saved | Net Benefit |
+|--------|----------|-----------------|-------------|
+| 1,000 apps/day | ~$0.50 | ~$1.80 | +$1.30/day |
+| 10,000 apps/day | ~$5 | ~$18 | +$13/day |
+| 100,000 apps/day | ~$50 | ~$180 | +$130/day |
+
+*Assumes 80% filter rate, $0.09/GB bandwidth, gpt-4o-mini pricing*
+
+### Disabling LLM Filtering
+
+To disable LLM filtering and use only regex-based filters:
+
+```bash
+LLM_FILTER_ENABLED=false scrapy crawl idox -a days_back=7
+```
+
+Or via spider settings:
+```bash
+scrapy crawl idox -a days_back=7 -s LLM_FILTER_ENABLED=false
 ```
 
 ## Supported Councils
@@ -496,7 +711,7 @@ cat logs/runs/run_*.json | jq '.failures'
 To download all documents without filtering (like Camden spider):
 
 ```python
-# In your spider
+# In your spider - bypass ALL filters
 custom_settings = {
     "ITEM_PIPELINES": {
         "planning_scraper.pipelines.pdf_download.PDFDownloadPipeline": 200,
@@ -505,6 +720,21 @@ custom_settings = {
         "planning_scraper.pipelines.supabase.SupabasePipeline": 500,
     },
 }
+```
+
+To disable only specific filters via command line:
+
+```bash
+# Disable LLM filter only (keep approval and residential filters)
+scrapy crawl idox -a days_back=7 -s LLM_FILTER_ENABLED=false
+
+# Disable approval filter only
+scrapy crawl idox -a days_back=7 -s APPROVAL_FILTER_ENABLED=false
+
+# Disable both LLM and approval filters
+scrapy crawl idox -a days_back=7 \
+  -s LLM_FILTER_ENABLED=false \
+  -s APPROVAL_FILTER_ENABLED=false
 ```
 
 ## Development

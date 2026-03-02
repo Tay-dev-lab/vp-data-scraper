@@ -43,19 +43,22 @@ ROBOTSTXT_OBEY = False
 # Concurrency and Throttling
 # =============================================================================
 
-# Moderate concurrency to avoid overwhelming servers
-CONCURRENT_REQUESTS = 8
-CONCURRENT_REQUESTS_PER_DOMAIN = 4
-CONCURRENT_REQUESTS_PER_IP = 4
+# Conservative concurrency to avoid rate limiting on council sites
+CONCURRENT_REQUESTS = 4
+CONCURRENT_REQUESTS_PER_DOMAIN = 2  # Max 2 concurrent requests per council
+CONCURRENT_REQUESTS_PER_IP = 2
 
 # Download delay between requests
-DOWNLOAD_DELAY = 1.0
+DOWNLOAD_DELAY = 2.0
+
+# Randomize download delay (0.5 = 50% variation, so 1.0s - 3.0s)
+RANDOMIZE_DOWNLOAD_DELAY = True
 
 # Enable auto-throttling for adaptive rate limiting
 AUTOTHROTTLE_ENABLED = True
-AUTOTHROTTLE_START_DELAY = 1.0
-AUTOTHROTTLE_MAX_DELAY = 10.0
-AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
+AUTOTHROTTLE_START_DELAY = 2.0
+AUTOTHROTTLE_MAX_DELAY = 15.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.5
 
 # Request timeout
 DOWNLOAD_TIMEOUT = 60
@@ -152,6 +155,10 @@ AWS_REGION = os.environ.get("AWS_REGION", "eu-west-2")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+# Store applications even if they have no matching documents (default: false)
+SUPABASE_STORE_APPS_WITHOUT_DOCS = (
+    os.environ.get("SUPABASE_STORE_APPS_WITHOUT_DOCS", "false").lower() == "true"
+)
 
 # =============================================================================
 # LLM Settings (for intelligent application filtering)

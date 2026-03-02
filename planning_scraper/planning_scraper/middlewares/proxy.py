@@ -1,11 +1,13 @@
 """
 Proxy Middleware - adds proxy support for requests.
 
-Uses sticky proxy sessions for consistent IP per council domain.
+Uses sticky proxy sessions for consistent IP per spider run.
 """
 
 import logging
 import os
+import random
+import string
 from typing import Optional
 
 from scrapy import signals
@@ -20,15 +22,36 @@ class ProxyMiddleware:
     - PROXY_URL: Full proxy URL (e.g., http://user:pass@proxy.example.com:8080)
     - PROXY_ENABLED: Enable/disable proxy (default: True if PROXY_URL set)
 
+    If PROXY_URL contains '-session-' placeholder, generates unique session ID per run.
+
     Usage:
         Set PROXY_URL in settings or environment variable.
         The middleware will automatically add the proxy to all requests.
     """
 
     def __init__(self, proxy_url: Optional[str] = None, enabled: bool = True):
-        self.proxy_url = proxy_url
-        self.enabled = enabled and bool(proxy_url)
         self.logger = logging.getLogger(__name__)
+        self.original_proxy_url = proxy_url
+        self.proxy_url = self._generate_session_url(proxy_url)
+        self.enabled = enabled and bool(proxy_url)
+
+    def _generate_session_url(self, proxy_url: Optional[str]) -> Optional[str]:
+        """Generate unique session ID for sticky proxy if URL contains session placeholder."""
+        if not proxy_url:
+            return None
+
+        # Generate random session ID for this spider run
+        session_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+
+        # Replace existing session ID or add new one
+        # Format: -session-XXXXX in username part
+        if "-session-" in proxy_url:
+            # Replace existing session with new random one
+            import re
+            proxy_url = re.sub(r'-session-[a-z0-9]+', f'-session-{session_id}', proxy_url)
+            self.logger.info(f"Generated new proxy session ID: {session_id}")
+
+        return proxy_url
 
         if self.enabled:
             self.logger.info(f"Proxy middleware enabled: {self._mask_proxy_url()}")

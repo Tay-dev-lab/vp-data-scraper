@@ -1,7 +1,10 @@
 """
 Application Filter Pipeline - filters to residential/householder applications only.
 
-This pipeline runs FIRST (priority 50) to avoid processing non-residential applications.
+This pipeline runs after approval filter (priority 50) to avoid processing
+non-residential applications.
+
+Uses the ApplicationStateTracker to coordinate with async pipelines.
 """
 
 import logging
@@ -9,6 +12,7 @@ from scrapy.exceptions import DropItem
 
 from ..items.application import PlanningApplicationItem
 from ..services.application_filter import ResidentialApplicationFilter
+from ..utils.state_tracker import ApplicationStateTracker
 
 
 class ApplicationFilterPipeline:
@@ -37,6 +41,16 @@ class ApplicationFilterPipeline:
     def from_crawler(cls, crawler):
         """Create pipeline instance from crawler."""
         return cls()
+
+    def open_spider(self, spider):
+        """Initialize state tracker on spider if not already present."""
+        # Initialize the rejected applications set (legacy)
+        if not hasattr(spider, "_rejected_applications"):
+            spider._rejected_applications = set()
+
+        # Initialize the application state tracker (shared across pipelines)
+        if not hasattr(spider, "_app_state"):
+            spider._app_state = ApplicationStateTracker()
 
     def process_item(self, item, spider):
         """
@@ -68,9 +82,26 @@ class ApplicationFilterPipeline:
             f"Rejected non-residential application: {item.get('application_reference')} - {reason}"
         )
 
+        # Mark as rejected so document filter can drop its documents
+        self._mark_application_rejected(item, spider)
         raise DropItem(
             f"Non-residential application dropped: {item.get('application_reference')}"
         )
+
+    def _mark_application_rejected(self, item, spider):
+        """Mark an application as rejected so its documents will be dropped."""
+        council = item.get("council_name", "")
+        ref = item.get("application_reference", "")
+        key = f"{council}:{ref}"
+
+        # Mark in state tracker (primary mechanism)
+        if hasattr(spider, "_app_state"):
+            spider._app_state.mark_rejected(key)
+
+        # Also mark in legacy set for backwards compatibility
+        if not hasattr(spider, "_rejected_applications"):
+            spider._rejected_applications = set()
+        spider._rejected_applications.add(key)
 
     def close_spider(self, spider):
         """Log statistics when spider closes."""

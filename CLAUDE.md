@@ -14,11 +14,26 @@ cd planning_scraper
 uv sync --dev
 
 # Run IDOX spider (scrapes ~55 UK councils)
-scrapy crawl idox -a days_back=30
-scrapy crawl idox -a start_date=01/01/2025 -a end_date=31/01/2025
+uv run scrapy crawl idox -a days_back=30
+uv run scrapy crawl idox -a start_date=01/01/2025 -a end_date=31/01/2025
+
+# London boroughs only
+uv run scrapy crawl idox -a region=london -a days_back=30
+
+# Single council
+uv run scrapy crawl idox -a council=barnet -a days_back=7
+
+# Disable LLM filtering (regex-only, faster)
+uv run scrapy crawl idox -a region=london -a days_back=7 -s LLM_FILTER_ENABLED=false
+
+# Run other London spiders
+uv run scrapy crawl aspx -a region=london -a days_back=30    # Camden, Merton, Wandsworth
+uv run scrapy crawl ocella -a region=london -a days_back=30  # Havering, Hillingdon
+uv run scrapy crawl agile -a region=london -a days_back=30   # Islington, Redbridge, Richmond
+uv run scrapy crawl atlas -a region=london -a days_back=30   # Kensington & Chelsea
 
 # Run Camden spider (Playwright-based, bypasses filters)
-scrapy crawl camden
+uv run scrapy crawl camden
 
 # Linting and formatting
 ruff check planning_scraper/
@@ -32,12 +47,15 @@ pytest tests/
 
 ### Data Flow
 ```
-Spider → ApplicationFilterPipeline → DocumentFilterPipeline → PDFDownloadPipeline
-       → PDFCompressPipeline → S3UploadPipeline → SupabasePipeline
+Spider → ApprovalStatusFilterPipeline → ApplicationFilterPipeline → LLMApplicationFilterPipeline
+       → DocumentFilterPipeline → PDFDownloadPipeline → PDFCompressPipeline
+       → S3UploadPipeline → SupabasePipeline
 ```
 
 ### Pipeline Priority Order
+- **40**: ApprovalStatusFilterPipeline - Drops non-approved applications
 - **50**: ApplicationFilterPipeline - Drops non-residential applications
+- **75**: LLMApplicationFilterPipeline - LLM classification for new build/conversion (1-30 units)
 - **100**: DocumentFilterPipeline - Drops non-drawing documents
 - **200**: PDFDownloadPipeline - Downloads PDFs to temp storage
 - **300**: PDFCompressPipeline - Compresses PDFs >10MB
@@ -48,6 +66,7 @@ Spider → ApplicationFilterPipeline → DocumentFilterPipeline → PDFDownloadP
 - `spiders/idox/` - IDOX portal spider (form-based search)
 - `spiders/camden/` - Camden ASPX spider (uses Playwright for JS-heavy portal)
 - `services/` - Business logic for filtering (application_filter.py, pdf_filter.py)
+- `services/llm/` - LLM classification service with providers (OpenAI, Anthropic, Ollama)
 - `config/` - Portal URLs (portals.py) and document patterns (patterns.py)
 - `pipelines/` - Processing stages
 
@@ -56,7 +75,11 @@ Spider → ApplicationFilterPipeline → DocumentFilterPipeline → PDFDownloadP
 - `DocumentItem` - PDF document metadata (url, filename, type) linked to an application
 
 ### Filtering Logic
+**Approval Filter** (`pipelines/approval_filter.py`): Regex-based filter that keeps only approved applications. Lenient mode passes items with missing decision field.
+
 **Residential Filter** (`services/application_filter.py`): Includes householder applications, extensions, loft conversions, new builds ≤10 houses or ≤20 apartments. Excludes commercial, industrial, tree works, etc.
+
+**LLM Filter** (`services/llm/classifier.py`): Uses LLM to classify applications as new build or conversion with 1-30 units. Supports OpenAI, Anthropic, and Ollama providers. Includes caching to reduce API costs.
 
 **Drawing Filter** (`services/pdf_filter.py`): High-confidence matches for site plans, floor plans, elevations, sections. Excludes forms, statements, reports, letters.
 
@@ -73,10 +96,22 @@ SUPABASE_KEY=
 PDF_TEMP_DIR=
 ```
 
+LLM Configuration:
+```
+LLM_PROVIDER=openai          # openai, anthropic, or ollama
+LLM_MODEL=gpt-4o-mini        # Model to use
+LLM_API_KEY=sk-...           # OpenAI API key
+ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key (if using)
+OLLAMA_BASE_URL=http://localhost:11434  # Ollama server URL
+```
+
 Optional:
 ```
-PROXY_URL=           # For proxy support
-LOG_LEVEL=INFO       # DEBUG, INFO, WARNING, ERROR
+PROXY_URL=                    # For proxy support
+LOG_LEVEL=INFO                # DEBUG, INFO, WARNING, ERROR
+LLM_FILTER_ENABLED=true       # Enable/disable LLM filtering
+LLM_FILTER_FALLBACK=permissive  # permissive or strict
+APPROVAL_FILTER_ENABLED=true  # Enable/disable approval filter
 ```
 
 ## Adding New Spiders

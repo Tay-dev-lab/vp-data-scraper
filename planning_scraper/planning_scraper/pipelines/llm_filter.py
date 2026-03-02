@@ -3,6 +3,11 @@ LLM Application Filter Pipeline - uses LLM to classify applications.
 
 This pipeline runs after the regex-based filters (priority 75) to provide
 intelligent classification of applications as new build or conversion.
+
+IMPORTANT: This pipeline uses async LLM calls via Twisted deferToThread.
+To prevent race conditions with document processing, it marks applications
+as CLASSIFYING before starting the async call, then marks them QUALIFIED
+or REJECTED in the callback. Documents wait for classification if needed.
 """
 
 import logging
@@ -15,6 +20,7 @@ from twisted.internet import threads
 from ..items.application import PlanningApplicationItem
 from ..services.llm import get_llm_provider, PlanningApplicationClassifier, LLMCache
 from ..services.llm.base import LLMError
+from ..utils.state_tracker import ApplicationStateTracker
 
 
 class LLMApplicationFilterPipeline:
@@ -61,6 +67,7 @@ class LLMApplicationFilterPipeline:
         self.logger = logging.getLogger(__name__)
         self.classifier: Optional[PlanningApplicationClassifier] = None
         self._initialized = False
+        self._spider = None  # Set during open_spider
 
         # Statistics
         self.stats = {
@@ -106,19 +113,30 @@ class LLMApplicationFilterPipeline:
             settings=settings_dict,
         )
 
-    def _mark_application_approved(self, item):
-        """Mark an application as approved so its documents will be processed."""
+    def open_spider(self, spider):
+        """Store spider reference and initialize state tracker."""
+        self._spider = spider
+
+        # Initialize the rejected applications set (legacy, for backwards compatibility)
+        if not hasattr(spider, "_rejected_applications"):
+            spider._rejected_applications = set()
+
+        # Initialize the application state tracker (shared across pipelines)
+        if not hasattr(spider, "_app_state"):
+            spider._app_state = ApplicationStateTracker()
+            self.logger.debug("Initialized ApplicationStateTracker on spider")
+
+    def _mark_application_rejected(self, item):
+        """Mark an application as rejected so its documents will be dropped."""
         council = item.get("council_name", "")
         ref = item.get("application_reference", "")
         key = f"{council}:{ref}"
 
-        # Store in a set that's accessible to other pipelines
-        if not hasattr(self, "_approved_apps"):
-            self._approved_apps = set()
-        self._approved_apps.add(key)
-
-        # Also store on the item so document filter can check
-        item["_llm_approved"] = True
+        # Store in a set on the spider, accessible to all pipelines
+        if self._spider:
+            if not hasattr(self._spider, "_rejected_applications"):
+                self._spider._rejected_applications = set()
+            self._spider._rejected_applications.add(key)
 
     def _initialize_classifier(self):
         """Initialize the LLM classifier (lazy initialization)."""
@@ -173,9 +191,8 @@ class LLMApplicationFilterPipeline:
         if not isinstance(item, PlanningApplicationItem):
             return item
 
-        # Skip if filter is disabled - mark as approved since it passes through
+        # Skip if filter is disabled - passes through without rejection
         if not self.enabled:
-            self._mark_application_approved(item)
             return item
 
         self.stats["total"] += 1
@@ -188,7 +205,6 @@ class LLMApplicationFilterPipeline:
                 self.logger.error(f"Failed to initialize classifier: {e}")
                 if self.fallback_mode == "permissive":
                     self.stats["fallback_passed"] += 1
-                    self._mark_application_approved(item)
                     return item
                 raise DropItem(f"LLM classifier initialization failed: {e}")
 
@@ -203,11 +219,21 @@ class LLMApplicationFilterPipeline:
             )
             if self.fallback_mode == "permissive":
                 self.stats["fallback_passed"] += 1
-                self._mark_application_approved(item)
                 return item
             raise DropItem(
                 f"Application {item.get('application_reference')} has no proposal text"
             )
+
+        # Generate key for state tracking
+        council = item.get("council_name", "")
+        ref = item.get("application_reference", "")
+        key = f"{council}:{ref}"
+
+        # CRITICAL: Mark as classifying BEFORE starting async to prevent race condition
+        # Documents arriving while classification is in progress will wait for result
+        if hasattr(self._spider, "_app_state"):
+            self._spider._app_state.mark_classifying(key)
+            self.logger.debug(f"Marked application {key} as classifying before async call")
 
         # Use deferToThread to run the async code in a thread pool
         d = threads.deferToThread(
@@ -217,13 +243,13 @@ class LLMApplicationFilterPipeline:
             address,
         )
 
-        # Add callback to process the result
-        d.addCallback(self._handle_classification_result, item)
-        d.addErrback(self._handle_classification_error, item)
+        # Add callback to process the result (pass key for state tracking)
+        d.addCallback(self._handle_classification_result, item, key)
+        d.addErrback(self._handle_classification_error, item, key)
 
         return d
 
-    def _handle_classification_result(self, result, item):
+    def _handle_classification_result(self, result, item, key):
         """Handle successful classification result."""
         # Store classification result on item
         item["_llm_classification"] = result.to_dict()
@@ -240,8 +266,9 @@ class LLMApplicationFilterPipeline:
                 f"{result.development_type} ({result.unit_count} units) - "
                 f"{result.reason}"
             )
-            # Track approved application for document filter
-            self._mark_application_approved(item)
+            # Mark as qualified in state tracker (resolves waiting documents)
+            if self._spider and hasattr(self._spider, "_app_state"):
+                self._spider._app_state.mark_qualified(key)
             return item
         else:
             self.stats["not_qualified"] += 1
@@ -249,18 +276,23 @@ class LLMApplicationFilterPipeline:
                 f"LLM NOT QUALIFIED: {item.get('application_reference')} - "
                 f"{result.development_type} - {result.reason}"
             )
+            # Mark as rejected in state tracker FIRST (resolves waiting documents)
+            if self._spider and hasattr(self._spider, "_app_state"):
+                self._spider._app_state.mark_rejected(key)
+            # Also mark in legacy set for backwards compatibility
+            self._mark_application_rejected(item)
             raise DropItem(
                 f"Application {item.get('application_reference')} not qualified: "
                 f"{result.reason}"
             )
 
-    def _handle_classification_error(self, failure, item):
+    def _handle_classification_error(self, failure, item, key):
         """Handle classification error."""
         # Extract the actual exception
         error = failure.value
 
         # If this is a DropItem from _handle_classification_result (intentional rejection),
-        # re-raise it - don't treat it as an error
+        # re-raise it - don't treat it as an error (state already tracked in result handler)
         if isinstance(error, DropItem):
             return failure
 
@@ -277,9 +309,15 @@ class LLMApplicationFilterPipeline:
                 f"Passing application {item.get('application_reference')} "
                 f"due to LLM error (permissive mode)"
             )
-            self._mark_application_approved(item)
+            # Mark as qualified in state tracker (allowing documents through)
+            if self._spider and hasattr(self._spider, "_app_state"):
+                self._spider._app_state.mark_qualified(key)
             return item
         else:
+            # Mark as rejected in state tracker
+            if self._spider and hasattr(self._spider, "_app_state"):
+                self._spider._app_state.mark_rejected(key)
+            self._mark_application_rejected(item)
             raise DropItem(
                 f"Application {item.get('application_reference')} dropped due to LLM error: {error}"
             )
@@ -318,4 +356,19 @@ class LLMApplicationFilterPipeline:
             spider.crawler.stats.set_value("llm_filter/cache_misses", cache_stats["misses"])
             spider.crawler.stats.set_value(
                 "llm_filter/cache_hit_rate", cache_stats["hit_rate_percent"]
+            )
+
+        # Log state tracker stats
+        if hasattr(spider, "_app_state"):
+            state_stats = spider._app_state.get_stats()
+            self.logger.info(
+                f"State tracker stats: {state_stats['qualified']} qualified, "
+                f"{state_stats['rejected']} rejected, "
+                f"{state_stats['classifying']} still classifying"
+            )
+            spider.crawler.stats.set_value(
+                "state_tracker/qualified", state_stats["qualified"]
+            )
+            spider.crawler.stats.set_value(
+                "state_tracker/rejected", state_stats["rejected"]
             )
